@@ -1382,7 +1382,7 @@ export default function QuotationGenerator() {
                   onChange={handleFileSelect}
                   disabled={aiAnalyzing}
                   className="w-full px-3 py-2 border rounded-lg text-sm"
-                  accept=".txt,.md,.doc,.docx,.pdf,.png,.jpg,.jpeg,.gif"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
                 />
                 {aiAttachedFiles.length > 0 && (
                   <div className="mt-2 space-y-1">

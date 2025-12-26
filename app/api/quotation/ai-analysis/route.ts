@@ -50,28 +50,10 @@ export async function POST(request: NextRequest) {
           },
         });
       } 
-      // 텍스트 파일인 경우
-      else if (fileType.startsWith("text/") || fileName.endsWith(".txt") || fileName.endsWith(".md")) {
-        const text = await file.text();
-        fileContents.push({
-          type: "text",
-          text: `[파일명: ${file.name}]\n${text}`,
-        });
-      }
-      // PDF 파일인 경우 (텍스트로 처리)
-      else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-        // PDF는 복잡하므로 일단 파일명만 포함
-        fileContents.push({
-          type: "text",
-          text: `[PDF 파일: ${file.name} - 내용은 수동으로 확인해주세요]`,
-        });
-      }
-      // 기타 파일 (파일명만 포함)
+      // 이미지가 아닌 파일인 경우 (지원하지 않음)
       else {
-        fileContents.push({
-          type: "text",
-          text: `[첨부파일: ${file.name} (${fileType})]`,
-        });
+        // 이미지만 지원하므로 다른 파일 타입은 무시
+        console.warn(`지원하지 않는 파일 타입: ${fileType} (${file.name})`);
       }
     }
 
@@ -97,7 +79,8 @@ export async function POST(request: NextRequest) {
 각 공수는 man-hours 단위로 산정하며, 실제 개발에 필요한 시간을 정확히 계산해주세요.`;
 
     // 사용자 프롬프트 구성
-    const userContent: Array<{ type: string; text?: string; source?: { type: string; data: string; media_type: string } }> = [];
+    type ImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+    const userContent: Array<{ type: "text"; text: string } | { type: "image"; source: { type: "base64"; data: string; media_type: ImageMediaType } }> = [];
     
     // 텍스트 프롬프트 추가
     const textPrompt = `프로젝트명: ${projectName || "미지정"}
@@ -112,10 +95,18 @@ ${files.length > 0 ? `\n첨부된 파일 ${files.length}개를 참고하여 ` : 
     // 파일 내용 추가
     fileContents.forEach((content) => {
       if (content.type === "image" && "source" in content) {
-        userContent.push({
-          type: "image",
-          source: content.source,
-        });
+        const mediaType = content.source.media_type as ImageMediaType;
+        // 지원되는 이미지 타입만 추가
+        if (mediaType === "image/jpeg" || mediaType === "image/png" || mediaType === "image/gif" || mediaType === "image/webp") {
+          userContent.push({
+            type: "image",
+            source: {
+              type: "base64",
+              data: content.source.data,
+              media_type: mediaType,
+            },
+          });
+        }
       } else if (content.type === "text" && "text" in content) {
         userContent.push({
           type: "text",
@@ -174,9 +165,11 @@ ${files.length > 0 ? `\n첨부된 파일 ${files.length}개를 참고하여 ` : 
       
       if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
         jsonText = jsonText.substring(firstBracket, lastBracket + 1);
+        milestones = JSON.parse(jsonText);
+      } else {
+        // JSON 배열을 찾을 수 없는 경우 - Claude가 JSON이 아닌 텍스트로 응답
+        throw new Error("Claude 응답에 JSON 배열이 없습니다. 응답: " + responseText.substring(0, 200));
       }
-      
-      milestones = JSON.parse(jsonText);
 
       // 유효성 검사
       if (!Array.isArray(milestones)) {
@@ -200,7 +193,19 @@ ${files.length > 0 ? `\n첨부된 파일 ${files.length}개를 참고하여 ` : 
     } catch (parseError) {
       console.error("JSON 파싱 오류:", parseError);
       console.error("Claude 응답:", responseText);
-      throw new Error(`AI 응답을 파싱하는 중 오류가 발생했습니다: ${parseError instanceof Error ? parseError.message : "알 수 없는 오류"}`);
+      
+      // JSON 파싱 실패 시 사용자에게 더 명확한 오류 메시지 제공
+      const errorMessage = parseError instanceof Error ? parseError.message : "알 수 없는 오류";
+      const responsePreview = responseText.substring(0, 500);
+      
+      return NextResponse.json(
+        { 
+          error: `AI 응답을 파싱하는 중 오류가 발생했습니다: ${errorMessage}`,
+          details: "Claude가 JSON 형식이 아닌 텍스트로 응답했습니다. 프로젝트 설명을 더 자세히 입력하거나 다시 시도해주세요.",
+          responsePreview: responsePreview
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ milestones });
