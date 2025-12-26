@@ -34,7 +34,7 @@ export interface MilestoneItem {
   depth3: string;
   planning: number;
   server: number;
-  flutter: number;
+  app: number;
   web: number;
   text: number;
   pm: number;
@@ -60,6 +60,20 @@ export interface GradeInfo {
   total: number;
 }
 
+export interface MilestoneColumnWidths {
+  number: number;
+  depth1: number;
+  depth2: number;
+  depth3: number;
+  planning: number;
+  server: number;
+  app: number;
+  web: number;
+  qa: number;
+  pm: number;
+  total: number;
+}
+
 export interface QuotationData {
   company: CompanyInfo;
   client: ClientInfo;
@@ -69,9 +83,13 @@ export interface QuotationData {
   quotationItems: QuotationItem[];
   gradeInfo: GradeInfo[];
   discountRate: number;
-  workPeriod: string;
+  workPeriod: number;
+  notes: string;
   totalAmount: number;
   vatIncluded: boolean;
+  milestoneColumnWidths?: MilestoneColumnWidths;
+  rowsPerPage?: number;
+  roundingUnit?: number; // 절삭 단위 (기본값: 10000)
 }
 
 // 폰트 캐싱 (매번 로드하지 않도록)
@@ -391,7 +409,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   yPosition -= 20;
 
   // Milestone 테이블 헤더 (Features 통합 구조)
-  // 헤더 구조: #, Features (Depth1, Depth2, Depth3), Effort (기획/디자인, Server, Flutter, Web, Text, PM, Total)
+  // 헤더 구조: #, Features (Depth1, Depth2, Depth3), Effort (기획/디자인, Server, App, Web, Text, PM, Total)
   const milestoneColWidths = [30, 70, 70, 90, 50, 50, 50, 50, 50, 50, 50];
   const milestoneTableWidth = milestoneColWidths.reduce((sum, w) => sum + w, 0);
   const milestoneTableHeight = 18;
@@ -430,7 +448,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
     color: rgb(0.9, 0.9, 0.9),
   });
   
-  // 두 번째 행: Depth1, Depth2, Depth3, 기획/디자인, Server, Flutter, Web, Text, PM, Total
+  // 두 번째 행: Depth1, Depth2, Depth3, 기획/디자인, Server, App, Web, Text, PM, Total
   xPos += milestoneColWidths[0];
   const depth1Width = boldFont.widthOfTextAtSize("Depth1", 7);
   page.drawText("Depth1", { x: xPos + milestoneColWidths[1] / 2 - depth1Width / 2, y: yPosition - 12, size: 7, font: boldFont });
@@ -441,14 +459,14 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   const depth3Width = boldFont.widthOfTextAtSize("Depth3", 7);
   page.drawText("Depth3", { x: xPos + milestoneColWidths[3] / 2 - depth3Width / 2, y: yPosition - 12, size: 7, font: boldFont });
   xPos += milestoneColWidths[3];
-  const planningWidth = boldFont.widthOfTextAtSize("기획/디자인", 7);
-  page.drawText("기획/디자인", { x: xPos + milestoneColWidths[4] / 2 - planningWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
+  const planningWidth = boldFont.widthOfTextAtSize("기획/\n디자인", 7);
+  page.drawText("기획/\n디자인", { x: xPos + milestoneColWidths[4] / 2 - planningWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
   xPos += milestoneColWidths[4];
   const serverWidth = boldFont.widthOfTextAtSize("Server", 7);
   page.drawText("Server", { x: xPos + milestoneColWidths[5] / 2 - serverWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
   xPos += milestoneColWidths[5];
-  const flutterWidth = boldFont.widthOfTextAtSize("Flutter", 7);
-  page.drawText("Flutter", { x: xPos + milestoneColWidths[6] / 2 - flutterWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
+  const appWidth = boldFont.widthOfTextAtSize("App", 7);
+  page.drawText("App", { x: xPos + milestoneColWidths[6] / 2 - appWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
   xPos += milestoneColWidths[6];
   const webWidth = boldFont.widthOfTextAtSize("Web", 7);
   page.drawText("Web", { x: xPos + milestoneColWidths[7] / 2 - webWidth / 2, y: yPosition - 12, size: 7, font: boldFont });
@@ -492,9 +510,9 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
     const serverTextWidth = font.widthOfTextAtSize(serverText, 7);
     page.drawText(serverText, { x: xPos + milestoneColWidths[5] - serverTextWidth - 3, y: yPosition, size: 7, font: font });
     xPos += milestoneColWidths[5];
-    const flutterText = String(item.flutter);
-    const flutterTextWidth = font.widthOfTextAtSize(flutterText, 7);
-    page.drawText(flutterText, { x: xPos + milestoneColWidths[6] - flutterTextWidth - 3, y: yPosition, size: 7, font: font });
+    const appText = String(item.app);
+    const appTextWidth = font.widthOfTextAtSize(appText, 7);
+    page.drawText(appText, { x: xPos + milestoneColWidths[6] - appTextWidth - 3, y: yPosition, size: 7, font: font });
     xPos += milestoneColWidths[6];
     const webText = String(item.web);
     const webTextWidth = font.widthOfTextAtSize(webText, 7);
@@ -524,20 +542,20 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
     (acc, item) => ({
       planning: acc.planning + item.planning,
       server: acc.server + item.server,
-      flutter: acc.flutter + item.flutter,
+      app: acc.app + item.app,
       web: acc.web + item.web,
       text: acc.text + item.text,
       pm: acc.pm + item.pm,
       total: acc.total + item.total,
     }),
-    { planning: 0, server: 0, flutter: 0, web: 0, text: 0, pm: 0, total: 0 }
+    { planning: 0, server: 0, app: 0, web: 0, text: 0, pm: 0, total: 0 }
   );
 
   // Man-days 계산 (8시간 기준)
   const manDays = {
     planning: (totalMilestone.planning / 8).toFixed(1),
     server: (totalMilestone.server / 8).toFixed(1),
-    flutter: (totalMilestone.flutter / 8).toFixed(1),
+    app: (totalMilestone.app / 8).toFixed(1),
     web: (totalMilestone.web / 8).toFixed(1),
     text: (totalMilestone.text / 8).toFixed(1),
     pm: (totalMilestone.pm / 8).toFixed(1),
@@ -548,7 +566,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   const manMonths = {
     planning: (parseFloat(manDays.planning) / 20.9).toFixed(2),
     server: (parseFloat(manDays.server) / 20.9).toFixed(2),
-    flutter: (parseFloat(manDays.flutter) / 20.9).toFixed(2),
+    app: (parseFloat(manDays.app) / 20.9).toFixed(2),
     web: (parseFloat(manDays.web) / 20.9).toFixed(2),
     text: (parseFloat(manDays.text) / 20.9).toFixed(2),
     pm: (parseFloat(manDays.pm) / 20.9).toFixed(2),
@@ -566,8 +584,8 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   const serverDaysWidth = boldFont.widthOfTextAtSize(manDays.server, 8);
   page.drawText(manDays.server, { x: xPos + milestoneColWidths[5] - serverDaysWidth - 3, y: yPosition, size: 8, font: boldFont });
   xPos += milestoneColWidths[5];
-  const flutterDaysWidth = boldFont.widthOfTextAtSize(manDays.flutter, 8);
-  page.drawText(manDays.flutter, { x: xPos + milestoneColWidths[6] - flutterDaysWidth - 3, y: yPosition, size: 8, font: boldFont });
+  const appDaysWidth = boldFont.widthOfTextAtSize(manDays.app, 8);
+  page.drawText(manDays.app, { x: xPos + milestoneColWidths[6] - appDaysWidth - 3, y: yPosition, size: 8, font: boldFont });
   xPos += milestoneColWidths[6];
   const webDaysWidth = boldFont.widthOfTextAtSize(manDays.web, 8);
   page.drawText(manDays.web, { x: xPos + milestoneColWidths[7] - webDaysWidth - 3, y: yPosition, size: 8, font: boldFont });
@@ -592,8 +610,8 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   const serverMonthsWidth = boldFont.widthOfTextAtSize(manMonths.server, 8);
   page.drawText(manMonths.server, { x: xPos + milestoneColWidths[5] - serverMonthsWidth - 3, y: yPosition, size: 8, font: boldFont });
   xPos += milestoneColWidths[5];
-  const flutterMonthsWidth = boldFont.widthOfTextAtSize(manMonths.flutter, 8);
-  page.drawText(manMonths.flutter, { x: xPos + milestoneColWidths[6] - flutterMonthsWidth - 3, y: yPosition, size: 8, font: boldFont });
+  const appMonthsWidth = boldFont.widthOfTextAtSize(manMonths.app, 8);
+  page.drawText(manMonths.app, { x: xPos + milestoneColWidths[6] - appMonthsWidth - 3, y: yPosition, size: 8, font: boldFont });
   xPos += milestoneColWidths[6];
   const webMonthsWidth = boldFont.widthOfTextAtSize(manMonths.web, 8);
   page.drawText(manMonths.web, { x: xPos + milestoneColWidths[7] - webMonthsWidth - 3, y: yPosition, size: 8, font: boldFont });
@@ -875,7 +893,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   });
 
   yPosition -= 12;
-  page.drawText("* MVP 버전 개발이며, 개발 범위는 기획, 디자인, Flutter(iOS/AOS) 앱 개발, 관리자 페이지(웹) 개발임.", {
+  page.drawText("* MVP 버전 개발이며, 개발 범위는 기획, 디자인, App 개발, 관리자 페이지(웹) 개발임.", {
     x: 50,
     y: yPosition,
     size: 8,
@@ -980,7 +998,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   yPosition -= 20;
 
   // 주석 추가
-  page.drawText(`* 유효기간 : 견적일로 부터 ${data.project.validityDays}주이내`, {
+  page.drawText(`* 유효기간 : 견적일로 부터 14일 이내`, {
     x: 50,
     y: yPosition,
     size: 8,
@@ -1034,7 +1052,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
       throw new Error("PDF 파일이 비어있습니다.");
     }
     
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
     console.log("PDF Blob 생성 완료, 크기:", blob.size, "bytes");
     
     return blob;

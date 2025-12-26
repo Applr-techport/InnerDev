@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 견적서 모델
+model Quotation {
+  id        String   @id @default(cuid())
+  version   String   // 버전 번호 (예: 1.0, 1.1, 2.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 회사 정보
+  companyName            String
+  companyAddress         String
+  companyBusinessNumber  String
+  companyRepresentative  String
+  companyPhone           String
+
+  // 클라이언트 정보
+  clientName  String
+  clientPhone String
+
+  // 프로젝트 정보
+  projectName      String
+  projectVersion   String
+  projectDate      String
+  projectValidityDays Int @default(14)
+
+  // 견적 정보
+  discountRate Float
+  workPeriod   String
+  totalAmount  Float
+  vatIncluded  Boolean @default(true)
+
+  // JSON 데이터 저장
+  historyData      Json // HistoryItem[]
+  milestonesData   Json // MilestoneItem[]
+  quotationItems   Json // QuotationItem[]
+  gradeInfoData    Json // GradeInfo[]
+  milestoneColumnWidths Json? // MilestoneColumnWidths
+  rowsPerPage      Int? @default(20)
+  roundingUnit     Int? @default(10000) // 절삭 단위 (기본값: 만원)
+
+  // 메모
+  notes String?
+
+  @@index([projectName])
+  @@index([createdAt])
+}

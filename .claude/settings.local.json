@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node capture-screen.js:*)",
+      "Bash(pkill:*)",
+      "Bash(node test-pdf-generation.js:*)",
+      "Bash(npm run dev:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(node check-console.js:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(node:*)",
+      "Bash(claude mcp:*)",
+      "Bash(open:*)"
+    ]
+  }
+}
