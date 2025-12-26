@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
     // 파일명 인코딩 (한글 처리)
     const fileName = `견적서-${data.project.name || '견적서'}-${Date.now()}.pdf`;
     const encodedFileName = encodeURIComponent(fileName);
-    
-    return new NextResponse(pdfBuffer, {
+
+    // Buffer를 Uint8Array로 변환하여 NextResponse에 전달
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
