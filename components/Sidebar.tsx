@@ -9,6 +9,7 @@ const menuItems = [
   { name: "이미지 변환기", path: "/image-converter" },
   { name: "이미지 사이즈 변경", path: "/image-resize" },
   { name: "앱스토어 스크린샷", path: "/screenshot" },
+  { name: "견적서 생성기", path: "/quotation" },
 ];
 
 export default function Sidebar() {
