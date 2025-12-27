@@ -19,10 +19,12 @@ export async function POST(request: NextRequest) {
       const puppeteer = (await import("puppeteer-core")).default;
       const chromium = (await import("@sparticuz/chromium")).default;
 
+      const executablePath = await chromium.executablePath('/tmp/chromium');
+
       browser = await puppeteer.launch({
-        args: chromium.args,
+        args: [...chromium.args, '--single-process'],
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
+        executablePath: executablePath,
         headless: true,
       });
     } else {
