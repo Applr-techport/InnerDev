@@ -3,6 +3,12 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["icn1"]
+  "regions": ["icn1"],
+  "functions": {
+    "pages/api/quotation/pdf.ts": {
+      "memory": 2048,
+      "maxDuration": 30
+    }
+  }
 }
 
