@@ -1,0 +1,44 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          script: |
+            cd ${{ secrets.EC2_APP_PATH || '/var/www/inner-dev' }}
+            
+            # Git pull
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin main
+            
+            # Install dependencies
+            npm install
+            
+            # Build
+            npm run build
+            
+            # Restart application (PM2 사용 시)
+            pm2 restart inner-dev || pm2 start npm --name "inner-dev" -- start || systemctl restart inner-dev || true
+            
+            # 또는 직접 실행하는 경우
+            # pkill -f "next start" || true
+            # nohup npm start > /dev/null 2>&1 &
+
