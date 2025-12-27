@@ -19,14 +19,19 @@ export async function POST(request: NextRequest) {
       const puppeteer = (await import("puppeteer-core")).default;
       const chromium = (await import("@sparticuz/chromium")).default;
 
+      // 그래픽 모드 비활성화 (서버리스 환경 최적화)
+      chromium.setGraphicsMode = false;
+
       const executablePath = await chromium.executablePath();
       console.log('Chromium executable path:', executablePath);
+      console.log('Chromium args:', chromium.args);
 
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
         executablePath,
         headless: true,
+        ignoreHTTPSErrors: true,
       });
     } else {
       // 로컬 환경: 일반 puppeteer 사용
