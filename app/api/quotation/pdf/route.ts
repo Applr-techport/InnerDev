@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
           '--single-process',
         ],
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        headless: true,
       });
     } else {
       // 로컬 개발 환경
