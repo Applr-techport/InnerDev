@@ -11,19 +11,19 @@ export async function POST(request: NextRequest) {
 
     let browser;
 
-    // chrome-aws-lambda를 우선 사용 (Vercel/서버리스 환경)
+    // @sparticuz/chromium 우선 사용 (Vercel/서버리스 환경)
     try {
-      const chromium = (await import("chrome-aws-lambda")).default;
+      const chromium = (await import("@sparticuz/chromium")).default;
       const puppeteer = (await import("puppeteer-core")).default;
 
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath,
-        headless: chromium.headless,
+        executablePath: await chromium.executablePath(),
+        headless: true,
       });
     } catch (error) {
-      // chrome-aws-lambda 실패 시 로컬 puppeteer 사용
+      // @sparticuz/chromium 실패 시 로컬 puppeteer 사용
       console.log('Falling back to local puppeteer:', error);
       const puppeteer = (await import("puppeteer")).default;
 
