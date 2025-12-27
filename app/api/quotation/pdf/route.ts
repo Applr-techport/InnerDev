@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
     const fileName = `견적서-${data.project.name || '견적서'}-${Date.now()}.pdf`;
     const encodedFileName = encodeURIComponent(fileName);
     
-    return new NextResponse(pdfBuffer, {
+    // Buffer를 Uint8Array로 변환
+    const pdfArray = new Uint8Array(pdfBuffer);
+    
+    return new NextResponse(pdfArray, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
