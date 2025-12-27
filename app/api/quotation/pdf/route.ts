@@ -9,17 +9,12 @@ export async function POST(request: NextRequest) {
     // HTML 생성
     const fullHTML = generateQuotationHTML(data);
 
-    // Vercel/서버리스 환경 감지
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY;
-
     let browser;
 
-    if (isServerless) {
-      // 서버리스 환경: chrome-aws-lambda 사용
+    // chrome-aws-lambda를 우선 사용 (Vercel/서버리스 환경)
+    try {
       const chromium = (await import("chrome-aws-lambda")).default;
       const puppeteer = (await import("puppeteer-core")).default;
-
-      console.log('Using chrome-aws-lambda in serverless environment');
 
       browser = await puppeteer.launch({
         args: chromium.args,
@@ -27,9 +22,9 @@ export async function POST(request: NextRequest) {
         executablePath: await chromium.executablePath,
         headless: chromium.headless,
       });
-    } else {
-      // 로컬 환경: 일반 puppeteer 사용
-      console.log('Using local puppeteer');
+    } catch (error) {
+      // chrome-aws-lambda 실패 시 로컬 puppeteer 사용
+      console.log('Falling back to local puppeteer:', error);
       const puppeteer = (await import("puppeteer")).default;
 
       browser = await puppeteer.launch({
