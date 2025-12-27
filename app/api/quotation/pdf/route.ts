@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { generateQuotationHTML } from "@/lib/quotationHTMLTemplate";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
@@ -10,10 +11,15 @@ export async function POST(request: NextRequest) {
     // HTML 생성
     const fullHTML = generateQuotationHTML(data);
 
+    // Vercel 환경 감지
+    const isProduction = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
+
     // Puppeteer로 PDF 생성
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: isProduction ? await chromium.executablePath() : undefined,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
