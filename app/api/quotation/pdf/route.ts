@@ -16,19 +16,34 @@ export async function POST(request: NextRequest) {
     if (isVercel) {
       // Vercel 프로덕션 환경
       const puppeteer = (await import("puppeteer-core")).default;
-      const chromium = (await import("@sparticuz/chromium-min")).default;
       
-      chromium.setGraphicsMode = false;
+      let executablePath: string | undefined;
+      let chromiumArgs: string[] = [];
+      
+      try {
+        // @sparticuz/chromium-min 시도
+        const chromiumMin = (await import("@sparticuz/chromium-min")).default;
+        chromiumMin.setGraphicsMode = false;
+        executablePath = await chromiumMin.executablePath();
+        chromiumArgs = chromiumMin.args;
+      } catch (error) {
+        // chromium-min 실패 시 chromium 사용
+        console.warn('chromium-min 실패, chromium으로 전환:', error);
+        const chromium = (await import("@sparticuz/chromium")).default;
+        chromium.setGraphicsMode = false;
+        executablePath = await chromium.executablePath();
+        chromiumArgs = chromium.args;
+      }
       
       browser = await puppeteer.launch({
         args: [
-          ...chromium.args,
+          ...chromiumArgs,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--single-process',
         ],
-        executablePath: await chromium.executablePath(),
+        executablePath,
         headless: true,
       });
     } else {
