@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer";
 import { generateQuotationHTML } from "@/lib/quotationHTMLTemplate";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
@@ -10,11 +9,37 @@ export async function POST(request: NextRequest) {
     // HTML 생성
     const fullHTML = generateQuotationHTML(data);
 
-    // Puppeteer로 PDF 생성
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // 환경에 따라 Puppeteer 설정
+    const isVercel = process.env.VERCEL === "1";
+    
+    let browser;
+    if (isVercel) {
+      // Vercel 프로덕션 환경
+      const puppeteer = (await import("puppeteer-core")).default;
+      const chromium = (await import("@sparticuz/chromium-min")).default;
+      
+      chromium.setGraphicsMode = false;
+      
+      browser = await puppeteer.launch({
+        args: [
+          ...chromium.args,
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--single-process',
+        ],
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
+    } else {
+      // 로컬 개발 환경
+      const puppeteer = (await import("puppeteer")).default;
+      
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    }
 
     const page = await browser.newPage();
     await page.setContent(fullHTML, { waitUntil: 'networkidle0' });
