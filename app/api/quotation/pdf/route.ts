@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { generateQuotationHTML } from "@/lib/quotationHTMLTemplate";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
@@ -11,16 +9,31 @@ export async function POST(request: NextRequest) {
     // HTML 생성
     const fullHTML = generateQuotationHTML(data);
 
-    // Vercel 환경 감지
-    const isProduction = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
+    // Vercel 환경인지 확인
+    const isVercel = !!process.env.VERCEL;
 
-    // Puppeteer로 PDF 생성
-    const browser = await puppeteer.launch({
-      args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: isProduction ? await chromium.executablePath() : undefined,
-      headless: true,
-    });
+    let browser;
+
+    if (isVercel) {
+      // Vercel 환경: @sparticuz/chromium 사용
+      const puppeteer = (await import("puppeteer-core")).default;
+      const chromium = (await import("@sparticuz/chromium")).default;
+
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      // 로컬 환경: 일반 puppeteer 사용
+      const puppeteer = (await import("puppeteer")).default;
+
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true,
+      });
+    }
 
     const page = await browser.newPage();
     await page.setContent(fullHTML, { waitUntil: 'networkidle0' });
