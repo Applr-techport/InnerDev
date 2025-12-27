@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       args: isProduction ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: chromium.defaultViewport,
       executablePath: isProduction ? await chromium.executablePath() : undefined,
-      headless: chromium.headless,
+      headless: true,
     });
 
     const page = await browser.newPage();
