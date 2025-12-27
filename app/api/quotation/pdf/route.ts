@@ -15,24 +15,16 @@ export async function POST(request: NextRequest) {
     let browser;
 
     if (isVercel) {
-      // Vercel 환경: @sparticuz/chromium 사용
+      // Vercel 환경: chrome-aws-lambda 사용
+      const chromium = (await import("chrome-aws-lambda")).default;
       const puppeteer = (await import("puppeteer-core")).default;
-      const chromium = (await import("@sparticuz/chromium")).default;
 
-      try {
-        const executablePath = await chromium.executablePath();
-        console.log('Chromium executable path:', executablePath);
-
-        browser = await puppeteer.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath,
-          headless: true,
-        });
-      } catch (launchError) {
-        console.error('Chromium launch error:', launchError);
-        throw new Error(`Chromium launch failed: ${launchError instanceof Error ? launchError.message : String(launchError)}`);
-      }
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+      });
     } else {
       // 로컬 환경: 일반 puppeteer 사용
       const puppeteer = (await import("puppeteer")).default;
