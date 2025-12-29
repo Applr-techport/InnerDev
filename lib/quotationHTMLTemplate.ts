@@ -763,7 +763,7 @@ export function generateQuotationHTML(data: QuotationData): string {
       <div style="border-top: 1px solid #999; margin: 0px 0;"></div>
 
       <div class="client-info" style="margin-top: 3px; margin-bottom: 0px; text-align: right;">
-        <div style="font-size: 9pt; margin-bottom: 0px; display: flex; align-items: center; justify-content: flex-end;">클라이언트 ${data.client.name || ""} 님 귀중</div>
+        <div style="font-size: 9pt; margin-bottom: 0px; display: flex; align-items: center; justify-content: flex-end;">${data.client.name || ""} 님 귀중</div>
         <div style="font-size: 8pt; color: #666; display: flex; align-items: center; justify-content: flex-end;">${data.client.phone || ""}</div>
       </div>
 
@@ -771,7 +771,7 @@ export function generateQuotationHTML(data: QuotationData): string {
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0;">
         <div style="font-size: 10pt; display: flex; align-items: center; gap: 10px;">
-          <strong>프로젝트 제안가</strong> <span>${data.discountRate.toFixed(1)} %</span> <span>할인률</span> <span style="font-size: 9pt;">(작업기간 ${data.workPeriod}개월)</span>
+          <strong>프로젝트 제안가</strong> <span>${data.discountRate.toFixed(1)} %</span> <span>할인률</span>${data.workPeriod && data.workPeriod > 0 ? `<span style="font-size: 9pt;">(작업기간 ${data.workPeriod}개월)</span>` : ''}
         </div>
         <div style="font-size: 12pt; font-weight: bold; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 10px; line-height: 1; margin-bottom: 5px;">
           <span style="display: inline-flex; align-items: center; line-height: 1;">${(Math.floor(data.totalAmount / (data.roundingUnit || 10000)) * (data.roundingUnit || 10000)).toLocaleString()}원</span> <span style="font-size: 8pt; font-weight: normal; display: inline-flex; align-items: center; line-height: 1; margin-top: 3px;">부가세 별도</span>

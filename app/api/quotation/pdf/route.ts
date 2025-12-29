@@ -76,13 +76,12 @@ export async function POST(request: NextRequest) {
     const fileName = `견적서-${data.project.name || '견적서'}-${Date.now()}.pdf`;
     const encodedFileName = encodeURIComponent(fileName);
     
-    // Buffer를 Uint8Array로 변환
-    const pdfArray = new Uint8Array(pdfBuffer);
-    
-    return new NextResponse(pdfArray, {
+    // Buffer를 직접 사용 (NextResponse가 Buffer를 자동으로 처리)
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
+        'Content-Length': pdfBuffer.length.toString(),
       },
     });
   } catch (error) {

@@ -470,12 +470,33 @@ export default function QuotationGenerator() {
         body: JSON.stringify(data),
       });
 
+      // Content-Type 확인
+      const contentType = response.headers.get('content-type');
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "PDF 생성에 실패했습니다.");
+        // 에러 응답인 경우 JSON으로 파싱 시도
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "PDF 생성에 실패했습니다.");
+        } else {
+          const errorText = await response.text();
+          throw new Error(errorText || "PDF 생성에 실패했습니다.");
+        }
+      }
+
+      // PDF 응답인지 확인
+      if (!contentType?.includes('application/pdf')) {
+        const errorText = await response.text();
+        throw new Error(`예상치 못한 응답 형식: ${contentType}. ${errorText}`);
       }
 
       const pdfBlob = await response.blob();
+      
+      // Blob이 비어있는지 확인
+      if (pdfBlob.size === 0) {
+        throw new Error("PDF 파일이 비어있습니다.");
+      }
+      
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
@@ -554,20 +575,17 @@ export default function QuotationGenerator() {
     setAIAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 견적서 저장
+  // 견적서 저장 (항상 새로 추가)
   const handleSave = async () => {
     setIsSaving(true);
     setError(null);
 
     try {
       const data = getQuotationData();
-      const url = currentQuotationId
-        ? `/api/quotation/${currentQuotationId}`
-        : '/api/quotation';
-      const method = currentQuotationId ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
+      
+      // 항상 POST로 새 견적서 추가
+      const response = await fetch('/api/quotation', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1072,9 +1090,10 @@ export default function QuotationGenerator() {
             <label className="block text-sm font-medium mb-1">작업기간 (개월)</label>
             <input
               type="number"
-              min="1"
+              min="0"
+              step="any"
               value={workPeriod}
-              onChange={(e) => setWorkPeriod(parseInt(e.target.value) || 0)}
+              onChange={(e) => setWorkPeriod(parseFloat(e.target.value) || 0)}
               className="w-full px-3 py-2 border rounded-lg"
             />
           </div>

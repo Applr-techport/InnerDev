@@ -691,7 +691,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
   });
 
   yPosition -= 20;
-  page.drawText(`클라이언트 ${data.client.name || "님"} 귀중`, {
+  page.drawText(`${data.client.name || ""} 님 귀중`, {
     x: 50,
     y: yPosition,
     size: 9,
@@ -708,7 +708,8 @@ export async function generateQuotationPDF(data: QuotationData): Promise<Blob> {
 
   yPosition -= 20;
   // 프로젝트 제안가 강조 스타일
-  page.drawText(`프로젝트 제안가 ${data.discountRate}% 할인률 (작업기간 ${data.workPeriod}) ${data.totalAmount.toLocaleString()} 부가세 별도`, {
+  const workPeriodText = data.workPeriod && data.workPeriod > 0 ? ` (작업기간 ${data.workPeriod}개월)` : '';
+  page.drawText(`프로젝트 제안가 ${data.discountRate}% 할인률${workPeriodText} ${data.totalAmount.toLocaleString()} 부가세 별도`, {
     x: 50,
     y: yPosition,
     size: 11,
