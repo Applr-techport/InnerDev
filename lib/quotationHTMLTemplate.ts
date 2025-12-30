@@ -304,7 +304,7 @@ export function generateQuotationHTML(data: QuotationData): string {
       .cover-title-box {
         border: 2px solid #333;
         padding: 40px 60px;
-        margin: 100px auto 150px;
+        margin: 0px auto 150px;
         max-width: 600px;
       }
 
@@ -332,12 +332,12 @@ export function generateQuotationHTML(data: QuotationData): string {
       }
 
       .cover-version {
-        font-size: 11pt;
+        font-size: 9pt;
         margin-bottom: 10px;
       }
 
       .cover-date {
-        font-size: 11pt;
+        font-size: 9pt;
         margin-bottom: 40px;
       }
 

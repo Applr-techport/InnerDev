@@ -260,7 +260,9 @@ export default function QuotationGenerator() {
 
 
   const getQuotationData = (): QuotationData => {
-    const totalAmount = quotationItems.reduce((sum, item) => sum + item.discountedAmount, 0);
+    // 총액 계산 후 절삭 단위로 절삭 (내림)
+    const totalAmountBeforeRounding = quotationItems.reduce((sum, item) => sum + item.discountedAmount, 0);
+    const totalAmount = Math.floor(totalAmountBeforeRounding / roundingUnit) * roundingUnit;
     return {
       company,
       client,
@@ -712,7 +714,7 @@ export default function QuotationGenerator() {
   const totalQuotation = quotationItems.reduce((sum, item) => sum + item.discountedAmount, 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-[60%_40%] gap-6 h-[calc(100vh-200px)]">
       {/* 좌측: 입력 화면 */}
       <div className="overflow-y-auto space-y-6 pr-4">
       {/* 회사 정보 */}
@@ -1123,6 +1125,7 @@ export default function QuotationGenerator() {
               <option value={1000}>1,000원</option>
               <option value={10000}>10,000원</option>
               <option value={100000}>100,000원</option>
+              <option value={1000000}>1,000,000원</option>
             </select>
           </div>
         </div>
@@ -1283,10 +1286,10 @@ export default function QuotationGenerator() {
       {/* 견적서 불러오기 모달 */}
       {showLoadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[80vh] overflow-hidden">
             <div className="p-6 border-b">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">저장된 견적서 불러오기</h2>
+                <h2 className="text-xl font-bold">저장된 견적서 불러오기</h2>
                 <button
                   onClick={() => setShowLoadModal(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -1301,38 +1304,42 @@ export default function QuotationGenerator() {
                   저장된 견적서가 없습니다.
                 </div>
               ) : (
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="bg-gray-100 border-b">
-                      <th className="p-3 text-center">프로젝트명</th>
-                      <th className="p-3 text-center">고객명</th>
-                      <th className="p-3 text-center">버전</th>
-                      <th className="p-3 text-center">총액</th>
-                      <th className="p-3 text-center">생성일</th>
-                      <th className="p-3 text-center">작업</th>
+                      <th className="p-2 text-center text-sm">프로젝트명</th>
+                      <th className="p-2 text-center text-sm">고객명</th>
+                      <th className="p-2 text-center text-sm">버전</th>
+                      <th className="p-2 text-center text-sm">총액</th>
+                      <th className="p-2 text-center text-sm">생성일</th>
+                      <th className="p-2 text-center text-sm">작업</th>
                     </tr>
                   </thead>
                   <tbody>
                     {savedQuotations.map((quotation) => (
                       <tr key={quotation.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 text-center">{quotation.projectName}</td>
-                        <td className="p-3 text-center">{quotation.clientName}</td>
-                        <td className="p-3 text-center">{quotation.version}</td>
-                        <td className="p-3 text-center">{quotation.totalAmount?.toLocaleString()}원</td>
-                        <td className="p-3 text-center">
+                        <td className="p-2 text-center text-sm">{quotation.projectName}</td>
+                        <td className="p-2 text-center text-sm">{quotation.clientName}</td>
+                        <td className="p-2 text-center text-sm">{quotation.version}</td>
+                        <td className="p-2 text-center text-sm">
+                          {quotation.totalAmount 
+                            ? Math.floor(quotation.totalAmount).toLocaleString() + '원'
+                            : '-'}
+                        </td>
+                        <td className="p-2 text-center text-sm">
                           {new Date(quotation.createdAt).toLocaleDateString('ko-KR')}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-2 text-center">
                           <div className="flex gap-2 justify-center">
                             <button
                               onClick={() => handleLoadQuotation(quotation.id)}
-                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                              className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
                             >
                               불러오기
                             </button>
                             <button
                               onClick={() => handleDeleteQuotation(quotation.id)}
-                              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                              className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
                             >
                               삭제
                             </button>
