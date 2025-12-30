@@ -83,31 +83,32 @@ export default function QuotationGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuotationId, setCurrentQuotationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [isRendering, setIsRendering] = useState(false);
   
   // AI 분석 관련 상태
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiProjectDescription, setAIProjectDescription] = useState("");
+  const [aiClientBudget, setAIClientBudget] = useState<string>("");
   const [aiAnalyzing, setAIAnalyzing] = useState(false);
   const [aiResult, setAIResult] = useState<MilestoneItem[] | null>(null);
   const [aiAttachedFiles, setAIAttachedFiles] = useState<File[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  // 마일스톤 표 컬럼 너비 조정 상태
+  // 마일스톤 표 컬럼 너비 조정 상태 (마일스톤 표 순서대로)
   const [milestoneColumnWidths, setMilestoneColumnWidths] = useState({
     number: 3,      // #
-    depth1: 15,    // Depth1
-    depth2: 15,    // Depth2
-    depth3: 15,    // Depth3
-    planning: 7.4, // 기획/디자인
-    server: 7.4,   // Server
-    app: 7.4,      // App
-    web: 7.4,      // Web
-    qa: 7.4,       // QA
-    pm: 7.4,       // PM
-    total: 7.4,    // Total
+    depth1: 12,     // Depth1
+    depth2: 15,     // Depth2
+    depth3: 28,     // Depth3
+    planning: 6,    // 기획/디자인
+    server: 6,      // Server
+    app: 6,         // App
+    web: 6,         // Web
+    qa: 6,          // QA
+    pm: 6,          // PM
+    total: 6,       // Total
   });
   
   // 한 페이지에 표시할 행 수
@@ -279,6 +280,21 @@ export default function QuotationGenerator() {
     };
   };
 
+  const downloadPDF = useCallback((blob: Blob, projectName: string) => {
+    const fileName = `견적서-${projectName || "견적서"}.pdf`;
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 다운로드 완료 후 blob URL 정리
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+  }, []);
+
   const updatePreview = async (showLoadingMessage = false) => {
     try {
       setError(null);
@@ -309,14 +325,7 @@ export default function QuotationGenerator() {
       if (pdfBlob.size === 0) {
         throw new Error("PDF 파일이 비어있습니다.");
       }
-      
-      // 이전 URL 정리
-      if (previewUrl) {
-        if (previewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(previewUrl);
-        }
-      }
-      
+
       // PDF.js로 렌더링 (동적 import로 클라이언트 사이드에서만 로드)
       try {
         const arrayBuffer = await pdfBlob.arrayBuffer();
@@ -337,20 +346,15 @@ export default function QuotationGenerator() {
         console.error("PDF.js 렌더링 오류:", pdfjsError);
         setIsRendering(false);
       }
-      
-      // Base64 URL 생성 (다운로드 링크용)
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64data = reader.result as string;
-        setPreviewUrl(base64data);
-      };
-      reader.readAsDataURL(pdfBlob);
+
+      // PDF blob을 state에 저장
+      setPdfBlob(pdfBlob);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "미리보기 생성 중 오류가 발생했습니다.";
       console.error("미리보기 생성 오류 상세:", err);
       console.error("에러 스택:", err instanceof Error ? err.stack : "스택 없음");
       setError(errorMessage);
-      setPreviewUrl(null);
+      setPdfBlob(null);
       setIsRendering(false);
     }
   };
@@ -370,15 +374,6 @@ export default function QuotationGenerator() {
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company, client, project, history, milestones, quotationItems, discountRate, workPeriod, notes]);
-
-  // 컴포넌트 언마운트 시 URL 정리
-  useEffect(() => {
-    return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   // PDF 문서가 설정되면 모든 페이지를 canvas에 렌더링
   useEffect(() => {
@@ -455,12 +450,18 @@ export default function QuotationGenerator() {
   }, [renderedPages]);
 
   const handleGenerate = async () => {
+    // 이미 blob이 있으면 재사용
+    if (pdfBlob) {
+      downloadPDF(pdfBlob, project.name);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
       const data = getQuotationData();
-      
+
       // API Route를 통해 PDF 생성
       const response = await fetch("/api/quotation/pdf", {
         method: "POST",
@@ -472,7 +473,7 @@ export default function QuotationGenerator() {
 
       // Content-Type 확인
       const contentType = response.headers.get('content-type');
-      
+
       if (!response.ok) {
         // 에러 응답인 경우 JSON으로 파싱 시도
         if (contentType?.includes('application/json')) {
@@ -490,21 +491,18 @@ export default function QuotationGenerator() {
         throw new Error(`예상치 못한 응답 형식: ${contentType}. ${errorText}`);
       }
 
-      const pdfBlob = await response.blob();
-      
+      const blob = await response.blob();
+
       // Blob이 비어있는지 확인
-      if (pdfBlob.size === 0) {
+      if (blob.size === 0) {
         throw new Error("PDF 파일이 비어있습니다.");
       }
-      
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `견적서-${project.name || "견적서"}-${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+      // blob을 state에 저장
+      setPdfBlob(blob);
+
+      // 다운로드 실행
+      downloadPDF(blob, project.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : "PDF 생성 중 오류가 발생했습니다.");
     } finally {
@@ -526,6 +524,9 @@ export default function QuotationGenerator() {
       const formData = new FormData();
       formData.append("projectName", project.name);
       formData.append("projectDescription", aiProjectDescription);
+      if (aiClientBudget.trim()) {
+        formData.append("clientBudget", aiClientBudget.trim());
+      }
       
       // 파일 첨부
       aiAttachedFiles.forEach((file, index) => {
@@ -557,6 +558,7 @@ export default function QuotationGenerator() {
       setMilestones(aiResult);
       setShowAIModal(false);
       setAIProjectDescription("");
+      setAIClientBudget("");
       setAIResult(null);
       setAIAttachedFiles([]);
     }
@@ -1217,14 +1219,13 @@ export default function QuotationGenerator() {
             >
               {isRendering ? "생성 중..." : "미리보기 만들기"}
             </button>
-            {previewUrl ? (
-              <a
-                href={previewUrl}
-                download="test-preview.pdf"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold no-underline"
+            {pdfBlob ? (
+              <button
+                onClick={() => downloadPDF(pdfBlob, project.name)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold"
               >
                 PDF 다운로드
-              </a>
+              </button>
             ) : (
               <button
                 onClick={handleGenerate}
@@ -1266,19 +1267,6 @@ export default function QuotationGenerator() {
                 style={{ display: "block", maxWidth: "100%", height: "auto" }}
               />
             </div>
-          ) : previewUrl ? (
-            <iframe
-              src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-              className="w-full h-full border-0 min-h-[600px]"
-              title="PDF Preview"
-              onLoad={() => {
-                console.log("iframe 로드 완료");
-              }}
-              onError={(e) => {
-                console.error("iframe 로드 오류:", e);
-                setError("PDF 미리보기를 로드할 수 없습니다.");
-              }}
-            />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500 p-8">
               <div className="text-center">
@@ -1371,6 +1359,7 @@ export default function QuotationGenerator() {
                   onClick={() => {
                     setShowAIModal(false);
                     setAIProjectDescription("");
+                    setAIClientBudget("");
                     setAIResult(null);
                     setAIAttachedFiles([]);
                   }}
@@ -1391,6 +1380,19 @@ export default function QuotationGenerator() {
                   className="w-full px-3 py-2 border rounded-lg"
                   disabled={aiAnalyzing}
                 />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">클라이언트 예산 (선택사항)</label>
+                <input
+                  type="text"
+                  value={aiClientBudget}
+                  onChange={(e) => setAIClientBudget(e.target.value)}
+                  placeholder="예: 50000000 (5천만원)"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  disabled={aiAnalyzing}
+                />
+                <p className="text-xs text-gray-500 mt-1">예산을 입력하면 해당 예산 범위 내에서 적절한 공수를 산정합니다.</p>
               </div>
 
               <div className="mb-4">
@@ -1482,6 +1484,7 @@ export default function QuotationGenerator() {
                 onClick={() => {
                   setShowAIModal(false);
                   setAIProjectDescription("");
+                  setAIClientBudget("");
                   setAIResult(null);
                   setAIAttachedFiles([]);
                 }}
@@ -1527,20 +1530,23 @@ export default function QuotationGenerator() {
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
               <div className="space-y-4">
-                {Object.entries(milestoneColumnWidths).map(([key, value]) => (
+                {/* 마일스톤 표 순서대로 컬럼 표시 */}
+                {[
+                  { key: 'number', label: '#' },
+                  { key: 'depth1', label: 'Depth1' },
+                  { key: 'depth2', label: 'Depth2' },
+                  { key: 'depth3', label: 'Depth3' },
+                  { key: 'planning', label: '기획/디자인' },
+                  { key: 'server', label: 'Server' },
+                  { key: 'app', label: 'App' },
+                  { key: 'web', label: 'Web' },
+                  { key: 'qa', label: 'QA' },
+                  { key: 'pm', label: 'PM' },
+                  { key: 'total', label: 'Total' },
+                ].map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between">
                     <label className="text-sm font-medium w-32">
-                      {key === 'number' ? '#' : 
-                       key === 'depth1' ? 'Depth1' :
-                       key === 'depth2' ? 'Depth2' :
-                       key === 'depth3' ? 'Depth3' :
-                       key === 'planning' ? '기획/디자인' :
-                       key === 'server' ? 'Server' :
-                       key === 'app' ? 'App' :
-                       key === 'web' ? 'Web' :
-                       key === 'qa' ? 'QA' :
-                       key === 'pm' ? 'PM' :
-                       key === 'total' ? 'Total' : key}
+                      {label}
                     </label>
                     <div className="flex items-center gap-4 flex-1">
                       <input
@@ -1548,7 +1554,7 @@ export default function QuotationGenerator() {
                         min="1"
                         max="30"
                         step="0.1"
-                        value={value}
+                        value={milestoneColumnWidths[key as keyof typeof milestoneColumnWidths]}
                         onChange={(e) => setMilestoneColumnWidths({
                           ...milestoneColumnWidths,
                           [key]: parseFloat(e.target.value)
@@ -1560,7 +1566,7 @@ export default function QuotationGenerator() {
                         min="1"
                         max="30"
                         step="0.1"
-                        value={value}
+                        value={milestoneColumnWidths[key as keyof typeof milestoneColumnWidths]}
                         onChange={(e) => setMilestoneColumnWidths({
                           ...milestoneColumnWidths,
                           [key]: parseFloat(e.target.value) || 0
