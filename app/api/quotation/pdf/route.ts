@@ -11,15 +11,15 @@ export async function POST(request: NextRequest) {
 
     // 환경에 따라 Puppeteer 설정
     const isVercel = process.env.VERCEL === "1";
-    
+
     let browser;
     if (isVercel) {
       // Vercel 프로덕션 환경
       const puppeteer = (await import("puppeteer-core")).default;
-      
+
       let executablePath: string | undefined;
       let chromiumArgs: string[] = [];
-      
+
       try {
         // @sparticuz/chromium-min 시도
         const chromiumMin = (await import("@sparticuz/chromium-min")).default;
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         executablePath = await chromium.executablePath();
         chromiumArgs = chromium.args;
       }
-      
+
       browser = await puppeteer.launch({
         args: [
           ...chromiumArgs,
@@ -47,17 +47,18 @@ export async function POST(request: NextRequest) {
         headless: true,
       });
     } else {
-      // 로컬 개발 환경
-      const puppeteer = (await import("puppeteer")).default;
-      
+      // 로컬 개발 환경 - 시스템 Chrome 사용
+      const puppeteer = (await import("puppeteer-core")).default;
+
       browser = await puppeteer.launch({
+        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
     }
 
     const page = await browser.newPage();
-    await page.setContent(fullHTML, { waitUntil: 'networkidle0' });
+    await page.setContent(fullHTML, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -75,9 +76,9 @@ export async function POST(request: NextRequest) {
     // 파일명 인코딩 (한글 처리)
     const fileName = `견적서-${data.project.name || '견적서'}-${Date.now()}.pdf`;
     const encodedFileName = encodeURIComponent(fileName);
-    
+
     // Buffer를 직접 사용 (NextResponse가 Buffer를 자동으로 처리)
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,

@@ -14,7 +14,13 @@
       "Bash(npx prisma db push:*)",
       "Bash(node:*)",
       "Bash(claude mcp:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(npm ls:*)",
+      "Bash(ls:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

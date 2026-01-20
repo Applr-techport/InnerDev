@@ -327,14 +327,14 @@ export default function QuotationGenerator() {
       if (pdfBlob.size === 0) {
         throw new Error("PDF 파일이 비어있습니다.");
       }
-
+      
       // PDF.js로 렌더링 (동적 import로 클라이언트 사이드에서만 로드)
       try {
         const arrayBuffer = await pdfBlob.arrayBuffer();
         console.log("PDF ArrayBuffer 생성 완료, 크기:", arrayBuffer.byteLength);
         
         // 동적 import로 pdfjs-dist 로드
-        const pdfjsLib = await import("pdfjs-dist");
+        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
         // PDF.js worker 설정
         pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
         
@@ -348,7 +348,7 @@ export default function QuotationGenerator() {
         console.error("PDF.js 렌더링 오류:", pdfjsError);
         setIsRendering(false);
       }
-
+      
       // PDF blob을 state에 저장
       setPdfBlob(pdfBlob);
     } catch (err) {
@@ -463,7 +463,7 @@ export default function QuotationGenerator() {
 
     try {
       const data = getQuotationData();
-
+      
       // API Route를 통해 PDF 생성
       const response = await fetch("/api/quotation/pdf", {
         method: "POST",
@@ -479,8 +479,8 @@ export default function QuotationGenerator() {
       if (!response.ok) {
         // 에러 응답인 경우 JSON으로 파싱 시도
         if (contentType?.includes('application/json')) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "PDF 생성에 실패했습니다.");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "PDF 생성에 실패했습니다.");
         } else {
           const errorText = await response.text();
           throw new Error(errorText || "PDF 생성에 실패했습니다.");
@@ -586,7 +586,7 @@ export default function QuotationGenerator() {
 
     try {
       const data = getQuotationData();
-      
+
       // 항상 POST로 새 견적서 추가
       const response = await fetch('/api/quotation', {
         method: 'POST',
@@ -922,12 +922,12 @@ export default function QuotationGenerator() {
             >
               AI 분석
             </button>
-            <button
-              onClick={handleAddMilestone}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              행 추가
-            </button>
+          <button
+            onClick={handleAddMilestone}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            행 추가
+          </button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -1193,19 +1193,19 @@ export default function QuotationGenerator() {
 
         {/* 생성 버튼 */}
         <div className="flex gap-2 sticky bottom-0 bg-white pt-4 pb-4">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
-          >
+            >
             {isSaving ? "저장 중..." : "견적서 저장"}
-          </button>
-          <button
-            onClick={handleLoadList}
-            disabled={isLoading}
+            </button>
+            <button
+              onClick={handleLoadList}
+              disabled={isLoading}
             className="px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
-          >
-            {isLoading ? "불러오는 중..." : "견적서 불러오기"}
+            >
+              {isLoading ? "불러오는 중..." : "견적서 불러오기"}
           </button>
         </div>
       </div>
