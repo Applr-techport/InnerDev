@@ -5,4 +5,4 @@ builder = "nixpacks"
 aptPkgs = ["chromium", "fonts-noto-cjk"]
 
 [deploy]
-startCommand = "npm start"
+startCommand = "npx prisma db push && npm start"
