@@ -22,7 +22,8 @@
       "Bash(brew install:*)",
       "Bash(~/.zshrc)",
       "Bash(export PATH=\"/opt/homebrew/opt/libpq/bin:$PATH\")",
-      "Bash(/opt/homebrew/opt/libpq/bin/psql:*)"
+      "Bash(/opt/homebrew/opt/libpq/bin/psql:*)",
+      "Bash(curl:*)"
     ]
   },
   "enableAllProjectMcpServers": false

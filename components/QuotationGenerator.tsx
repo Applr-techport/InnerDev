@@ -86,6 +86,7 @@ export default function QuotationGenerator() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [isRendering, setIsRendering] = useState(false);
+  const isGeneratingRef = useRef(false); // 중복 요청 방지용
   
   // AI 분석 관련 상태
   const [showAIModal, setShowAIModal] = useState(false);
@@ -298,7 +299,14 @@ export default function QuotationGenerator() {
   }, []);
 
   const updatePreview = async (showLoadingMessage = false) => {
+    // 이미 생성 중이면 중복 요청 방지
+    if (isGeneratingRef.current) {
+      console.log("PDF 생성 중... 중복 요청 무시");
+      return;
+    }
+
     try {
+      isGeneratingRef.current = true;
       setError(null);
       // showLoadingMessage가 true일 때만 렌더링 메시지 표시
       if (showLoadingMessage) {
@@ -371,6 +379,8 @@ export default function QuotationGenerator() {
       }
       setPdfBlob(null);
       setIsRendering(false);
+    } finally {
+      isGeneratingRef.current = false;
     }
   };
 

@@ -44,10 +44,17 @@ async function generatePDF(fullHTML: string, retryCount = 0): Promise<Uint8Array
       try { await browser.close(); } catch {}
     }
 
-    // Target closed 또는 타임아웃 에러면 재시도
+    // Target closed, TargetCloseError 또는 타임아웃 에러면 재시도
     const errorMsg = error instanceof Error ? error.message : String(error);
-    if ((errorMsg.includes('Target closed') || errorMsg.includes('timeout')) && retryCount < 2) {
-      console.log(`[PDF] 재시도 중... (${retryCount + 2}/3)`);
+    const errorName = error instanceof Error ? error.name : '';
+    const shouldRetry =
+      errorMsg.includes('Target closed') ||
+      errorMsg.includes('TargetCloseError') ||
+      errorName.includes('TargetCloseError') ||
+      errorMsg.includes('timeout');
+
+    if (shouldRetry && retryCount < 2) {
+      console.log(`[PDF] 재시도 중... (${retryCount + 2}/3) - 에러: ${errorName || errorMsg}`);
       await new Promise(resolve => setTimeout(resolve, 1000));
       return generatePDF(fullHTML, retryCount + 1);
     }
