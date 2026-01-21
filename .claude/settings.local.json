@@ -16,7 +16,8 @@
       "Bash(claude mcp:*)",
       "Bash(open:*)",
       "Bash(npm ls:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)"
     ]
   },
   "enableAllProjectMcpServers": false
