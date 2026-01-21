@@ -9,41 +9,20 @@ export async function POST(request: NextRequest) {
     // HTML 생성
     const fullHTML = generateQuotationHTML(data);
 
-    // 환경에 따라 Puppeteer 설정
-    const isProduction = process.env.NODE_ENV === "production";
-    console.log(`[PDF] NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
-    console.log(`[PDF] CHROMIUM_PATH: ${process.env.CHROMIUM_PATH}`);
+    // puppeteer 사용 (자체 Chromium 번들 포함)
+    const puppeteer = (await import("puppeteer")).default;
+    console.log(`[PDF] Using bundled Puppeteer Chromium`);
 
-    let browser;
-    const puppeteer = (await import("puppeteer-core")).default;
-
-    if (isProduction) {
-      // Railway/프로덕션 환경 - 시스템 Chromium 사용
-      const chromiumPath = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-      console.log(`[PDF] Using production chromium at: ${chromiumPath}`);
-
-      browser = await puppeteer.launch({
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--single-process',
-        ],
-        executablePath: chromiumPath,
-        headless: true,
-      });
-    } else {
-      // 로컬 개발 환경 - 시스템 Chrome 사용
-      const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-      console.log(`[PDF] Using local Chrome at: ${chromePath}`);
-
-      browser = await puppeteer.launch({
-        executablePath: chromePath,
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-    }
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+      ],
+    });
 
     const page = await browser.newPage();
     await page.setContent(fullHTML, { waitUntil: 'domcontentloaded', timeout: 30000 });
