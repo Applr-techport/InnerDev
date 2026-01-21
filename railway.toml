@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacks]
+aptPkgs = ["chromium", "fonts-noto-cjk"]
+
+[deploy]
+startCommand = "npm start"
