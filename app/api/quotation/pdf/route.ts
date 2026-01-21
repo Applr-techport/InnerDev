@@ -2,18 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateQuotationHTML } from "@/lib/quotationHTMLTemplate";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
-export async function POST(request: NextRequest) {
+// PDF 생성 함수 (재시도 로직 포함)
+async function generatePDF(fullHTML: string, retryCount = 0): Promise<Uint8Array> {
+  const puppeteer = (await import("puppeteer")).default;
+  let browser = null;
+
   try {
-    const data: QuotationData = await request.json();
+    console.log(`[PDF] 브라우저 실행 시도 (${retryCount + 1}/3)...`);
 
-    // HTML 생성
-    const fullHTML = generateQuotationHTML(data);
-
-    // puppeteer 사용 (자체 Chromium 번들 포함)
-    const puppeteer = (await import("puppeteer")).default;
-    console.log(`[PDF] Using bundled Puppeteer Chromium`);
-
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
       args: [
         '--no-sandbox',
@@ -22,10 +19,11 @@ export async function POST(request: NextRequest) {
         '--disable-gpu',
         '--single-process',
       ],
+      timeout: 60000, // 60초 타임아웃
     });
 
     const page = await browser.newPage();
-    await page.setContent(fullHTML, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.setContent(fullHTML, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -39,6 +37,34 @@ export async function POST(request: NextRequest) {
     });
 
     await browser.close();
+    console.log(`[PDF] PDF 생성 완료`);
+    return pdfBuffer;
+  } catch (error) {
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
+
+    // Target closed 또는 타임아웃 에러면 재시도
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if ((errorMsg.includes('Target closed') || errorMsg.includes('timeout')) && retryCount < 2) {
+      console.log(`[PDF] 재시도 중... (${retryCount + 2}/3)`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return generatePDF(fullHTML, retryCount + 1);
+    }
+
+    throw error;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const data: QuotationData = await request.json();
+
+    // HTML 생성
+    const fullHTML = generateQuotationHTML(data);
+
+    // PDF 생성 (재시도 로직 포함)
+    const pdfBuffer = await generatePDF(fullHTML);
 
     // 파일명 인코딩 (한글 처리)
     const fileName = `견적서-${data.project.name || '견적서'}-${Date.now()}.pdf`;

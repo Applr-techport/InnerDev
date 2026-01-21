@@ -364,9 +364,11 @@ export default function QuotationGenerator() {
       await renderPdfWithRetry();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "미리보기 생성 중 오류가 발생했습니다.";
-      console.error("미리보기 생성 오류 상세:", err);
-      console.error("에러 스택:", err instanceof Error ? err.stack : "스택 없음");
-      setError(errorMessage);
+      // Target closed 에러는 무시 (재시도 후 성공하므로)
+      if (!errorMessage.includes('Target closed')) {
+        console.error("미리보기 생성 오류 상세:", err);
+        setError(errorMessage);
+      }
       setPdfBlob(null);
       setIsRendering(false);
     }
