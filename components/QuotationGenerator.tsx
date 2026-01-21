@@ -328,29 +328,40 @@ export default function QuotationGenerator() {
         throw new Error("PDF 파일이 비어있습니다.");
       }
       
-      // PDF.js로 렌더링 (동적 import로 클라이언트 사이드에서만 로드)
-      try {
-        const arrayBuffer = await pdfBlob.arrayBuffer();
-        console.log("PDF ArrayBuffer 생성 완료, 크기:", arrayBuffer.byteLength);
-        
-        // 동적 import로 pdfjs-dist 로드
-        const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        // PDF.js worker 설정
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
-        
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        const pdf = await loadingTask.promise;
-        console.log("PDF.js 로드 완료, 페이지 수:", pdf.numPages);
-        setPdfDocument(pdf);
-        setIsRendering(false);
-        setIsInitialLoad(false);
-      } catch (pdfjsError) {
-        console.error("PDF.js 렌더링 오류:", pdfjsError);
-        setIsRendering(false);
-      }
-      
-      // PDF blob을 state에 저장
+      // PDF blob을 먼저 저장
       setPdfBlob(pdfBlob);
+
+      // PDF.js로 렌더링 (동적 import로 클라이언트 사이드에서만 로드)
+      const renderPdfWithRetry = async (retryCount = 0): Promise<void> => {
+        try {
+          const arrayBuffer = await pdfBlob.arrayBuffer();
+          console.log("PDF ArrayBuffer 생성 완료, 크기:", arrayBuffer.byteLength);
+
+          // 동적 import로 pdfjs-dist 로드
+          const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+          // PDF.js worker 설정
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdf = await loadingTask.promise;
+          console.log("PDF.js 로드 완료, 페이지 수:", pdf.numPages);
+          setPdfDocument(pdf);
+          setIsRendering(false);
+          setIsInitialLoad(false);
+        } catch (pdfjsError: unknown) {
+          const errorMsg = pdfjsError instanceof Error ? pdfjsError.message : String(pdfjsError);
+          // Target closed 오류면 재시도
+          if (errorMsg.includes('Target closed') && retryCount < 2) {
+            console.log(`PDF.js 재시도 (${retryCount + 1}/2)...`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return renderPdfWithRetry(retryCount + 1);
+          }
+          console.warn("PDF.js 렌더링 경고:", pdfjsError);
+          setIsRendering(false);
+        }
+      };
+
+      await renderPdfWithRetry();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "미리보기 생성 중 오류가 발생했습니다.";
       console.error("미리보기 생성 오류 상세:", err);
