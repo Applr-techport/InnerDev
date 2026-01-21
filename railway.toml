@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [build.nixpacks]
-aptPkgs = ["chromium", "fonts-noto-cjk"]
+nixPkgs = ["chromium", "noto-fonts-cjk"]
 
 [deploy]
-startCommand = "echo '=== Finding Chromium ===' && which chromium || true && find /nix -name 'chromium*' -type f 2>/dev/null | head -10 && export CHROMIUM_PATH=$(which chromium 2>/dev/null || find /nix -path '*bin/chromium' -type f 2>/dev/null | head -1) && echo \"CHROMIUM_PATH=$CHROMIUM_PATH\" && npx prisma db push && npm start"
+startCommand = "echo '=== Finding Chromium ===' && which chromium && ls -la $(which chromium) && export CHROMIUM_PATH=$(which chromium) && echo \"CHROMIUM_PATH=$CHROMIUM_PATH\" && npx prisma db push && npm start"
