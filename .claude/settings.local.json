@@ -23,7 +23,8 @@
       "Bash(~/.zshrc)",
       "Bash(export PATH=\"/opt/homebrew/opt/libpq/bin:$PATH\")",
       "Bash(/opt/homebrew/opt/libpq/bin/psql:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(PGPASSWORD=dLvsBJDtuvxATnjwhuEYgSpniRapcAbD /opt/homebrew/opt/postgresql@16/bin/psql:*)"
     ]
   },
   "enableAllProjectMcpServers": false
