@@ -57,6 +57,7 @@ export async function GET(
       id: quotation.id,
       createdAt: quotation.createdAt,
       updatedAt: quotation.updatedAt,
+      deletedAt: quotation.deletedAt,
     });
   } catch (error) {
     console.error("견적서 조회 오류:", error);
@@ -115,14 +116,15 @@ export async function PUT(
   }
 }
 
-// 견적서 삭제
+// 견적서 삭제 (소프트 삭제)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await prisma.quotation.delete({
+    await prisma.quotation.update({
       where: { id: params.id },
+      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json({ message: "견적서가 삭제되었습니다." });
@@ -130,6 +132,35 @@ export async function DELETE(
     console.error("견적서 삭제 오류:", error);
     return NextResponse.json(
       { error: "견적서 삭제 중 오류가 발생했습니다." },
+      { status: 500 }
+    );
+  }
+}
+
+// 견적서 복구
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { action } = await request.json();
+
+    if (action === "restore") {
+      await prisma.quotation.update({
+        where: { id: params.id },
+        data: { deletedAt: null },
+      });
+      return NextResponse.json({ message: "견적서가 복구되었습니다." });
+    }
+
+    return NextResponse.json(
+      { error: "알 수 없는 작업입니다." },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("견적서 복구 오류:", error);
+    return NextResponse.json(
+      { error: "견적서 복구 중 오류가 발생했습니다." },
       { status: 500 }
     );
   }

@@ -9,9 +9,10 @@ export async function GET(request: NextRequest) {
     const projectName = searchParams.get("projectName");
 
     const quotations = await prisma.quotation.findMany({
-      where: projectName
-        ? { projectName: { contains: projectName, mode: "insensitive" } }
-        : undefined,
+      where: {
+        deletedAt: null, // 삭제되지 않은 것만 조회
+        ...(projectName && { projectName: { contains: projectName, mode: "insensitive" } }),
+      },
       select: {
         id: true,
         version: true,
