@@ -11,11 +11,16 @@ export async function POST(request: NextRequest) {
 
     // 환경에 따라 Puppeteer 설정
     const isProduction = process.env.NODE_ENV === "production";
+    console.log(`[PDF] NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
+    console.log(`[PDF] CHROMIUM_PATH: ${process.env.CHROMIUM_PATH}`);
 
     let browser;
+    const puppeteer = (await import("puppeteer-core")).default;
+
     if (isProduction) {
       // Railway/프로덕션 환경 - 시스템 Chromium 사용
-      const puppeteer = (await import("puppeteer-core")).default;
+      const chromiumPath = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
+      console.log(`[PDF] Using production chromium at: ${chromiumPath}`);
 
       browser = await puppeteer.launch({
         args: [
@@ -25,15 +30,16 @@ export async function POST(request: NextRequest) {
           '--disable-gpu',
           '--single-process',
         ],
-        executablePath: process.env.CHROMIUM_PATH || '/nix/store/chromium/bin/chromium',
+        executablePath: chromiumPath,
         headless: true,
       });
     } else {
       // 로컬 개발 환경 - 시스템 Chrome 사용
-      const puppeteer = (await import("puppeteer-core")).default;
+      const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      console.log(`[PDF] Using local Chrome at: ${chromePath}`);
 
       browser = await puppeteer.launch({
-        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        executablePath: chromePath,
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
