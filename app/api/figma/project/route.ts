@@ -48,7 +48,6 @@ export async function POST(request: NextRequest) {
         selectedPages: [],
         convertedPages: {},
         status: "draft",
-        lastSavedData: null,
       },
     });
 
