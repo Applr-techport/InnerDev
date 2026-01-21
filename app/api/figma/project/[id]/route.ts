@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 
 // 프로젝트 조회
 export async function GET(
@@ -7,15 +7,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: project, error } = await supabase
-      .from("FigmaProject")
-      .select("*")
-      .eq("id", params.id)
-      .single();
-
-    if (error) {
-      throw error;
-    }
+    const project = await prisma.figmaProject.findUnique({
+      where: { id: params.id },
+    });
 
     if (!project) {
       return NextResponse.json(
@@ -42,9 +36,7 @@ export async function PUT(
   try {
     const data = await request.json();
 
-    const updateData: any = {
-      updatedAt: new Date().toISOString(),
-    };
+    const updateData: any = {};
 
     if (data.name !== undefined) updateData.name = data.name;
     if (data.figmaUrl !== undefined) updateData.figmaUrl = data.figmaUrl;
@@ -55,23 +47,10 @@ export async function PUT(
     if (data.status !== undefined) updateData.status = data.status;
     if (data.lastSavedData !== undefined) updateData.lastSavedData = data.lastSavedData;
 
-    const { data: project, error } = await supabase
-      .from("FigmaProject")
-      .update(updateData)
-      .eq("id", params.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    if (!project) {
-      return NextResponse.json(
-        { error: "프로젝트를 찾을 수 없습니다." },
-        { status: 404 }
-      );
-    }
+    const project = await prisma.figmaProject.update({
+      where: { id: params.id },
+      data: updateData,
+    });
 
     return NextResponse.json({ message: "프로젝트가 업데이트되었습니다.", project });
   } catch (error) {
@@ -89,14 +68,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { error } = await supabase
-      .from("FigmaProject")
-      .delete()
-      .eq("id", params.id);
-
-    if (error) {
-      throw error;
-    }
+    await prisma.figmaProject.delete({
+      where: { id: params.id },
+    });
 
     return NextResponse.json({ message: "프로젝트가 삭제되었습니다." });
   } catch (error) {
@@ -107,6 +81,3 @@ export async function DELETE(
     );
   }
 }
-
-
-

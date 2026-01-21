@@ -2,12 +2,14 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["innerdev"]
 }
 
 // 견적서 모델
@@ -54,6 +56,7 @@ model Quotation {
 
   @@index([projectName])
   @@index([createdAt])
+  @@schema("innerdev")
 }
 
 // 피그마 프로젝트 모델
@@ -73,4 +76,5 @@ model FigmaProject {
   @@index([name])
   @@index([createdAt])
   @@index([status])
+  @@schema("innerdev")
 }

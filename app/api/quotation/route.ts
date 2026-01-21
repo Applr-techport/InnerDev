@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
 // 견적서 목록 조회
@@ -8,20 +8,21 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const projectName = searchParams.get("projectName");
 
-    let query = supabase
-      .from("Quotation")
-      .select("id, version, projectName, clientName, totalAmount, createdAt, updatedAt")
-      .order("createdAt", { ascending: false });
-
-    if (projectName) {
-      query = query.ilike("projectName", `%${projectName}%`);
-    }
-
-    const { data: quotations, error } = await query;
-
-    if (error) {
-      throw error;
-    }
+    const quotations = await prisma.quotation.findMany({
+      where: projectName
+        ? { projectName: { contains: projectName, mode: "insensitive" } }
+        : undefined,
+      select: {
+        id: true,
+        version: true,
+        projectName: true,
+        clientName: true,
+        totalAmount: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json(quotations);
   } catch (error) {
@@ -38,13 +39,8 @@ export async function POST(request: NextRequest) {
   try {
     const data: QuotationData = await request.json();
 
-    // UUID 생성 (Supabase는 자동으로 UUID 생성하지 않으므로 직접 생성)
-    const id = crypto.randomUUID();
-
-    const { data: quotation, error } = await supabase
-      .from("Quotation")
-      .insert({
-        id,
+    const quotation = await prisma.quotation.create({
+      data: {
         version: data.project.version,
         companyName: data.company.name,
         companyAddress: data.company.address,
@@ -62,21 +58,15 @@ export async function POST(request: NextRequest) {
         notes: data.notes,
         totalAmount: data.totalAmount,
         vatIncluded: data.vatIncluded,
-        historyData: data.history,
-        milestonesData: data.milestones,
-        quotationItems: data.quotationItems,
-        gradeInfoData: data.gradeInfo,
-        milestoneColumnWidths: data.milestoneColumnWidths || null,
+        historyData: data.history as any,
+        milestonesData: data.milestones as any,
+        quotationItems: data.quotationItems as any,
+        gradeInfoData: data.gradeInfo as any,
+        milestoneColumnWidths: data.milestoneColumnWidths as any || null,
         rowsPerPage: data.rowsPerPage || 20,
         roundingUnit: data.roundingUnit || 10000,
-        updatedAt: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
+      },
+    });
 
     return NextResponse.json({ id: quotation.id, message: "견적서가 저장되었습니다." });
   } catch (error) {

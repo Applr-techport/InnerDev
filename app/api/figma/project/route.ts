@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 
 // 프로젝트 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    const { data: projects, error } = await supabase
-      .from("FigmaProject")
-      .select("id, name, figmaUrl, status, createdAt, updatedAt")
-      .order("updatedAt", { ascending: false });
-
-    if (error) {
-      throw error;
-    }
+    const projects = await prisma.figmaProject.findMany({
+      select: {
+        id: true,
+        name: true,
+        figmaUrl: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return NextResponse.json(projects);
   } catch (error) {
@@ -36,12 +39,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const id = crypto.randomUUID();
-
-    const { data: project, error } = await supabase
-      .from("FigmaProject")
-      .insert({
-        id,
+    const project = await prisma.figmaProject.create({
+      data: {
         name,
         figmaUrl,
         fileId,
@@ -50,14 +49,8 @@ export async function POST(request: NextRequest) {
         convertedPages: {},
         status: "draft",
         lastSavedData: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
+      },
+    });
 
     return NextResponse.json({ id: project.id, message: "프로젝트가 생성되었습니다." });
   } catch (error) {
@@ -68,6 +61,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
-

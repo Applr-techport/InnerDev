@@ -19,8 +19,5 @@
       "Bash(ls:*)"
     ]
   },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "supabase"
-  ]
+  "enableAllProjectMcpServers": false
 }

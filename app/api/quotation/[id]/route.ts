@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import type { QuotationData } from "@/lib/quotationProcessor";
 
 // 견적서 상세 조회
@@ -8,13 +8,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: quotation, error } = await supabase
-      .from("Quotation")
-      .select("*")
-      .eq("id", params.id)
-      .single();
+    const quotation = await prisma.quotation.findUnique({
+      where: { id: params.id },
+    });
 
-    if (error || !quotation) {
+    if (!quotation) {
       return NextResponse.json(
         { error: "견적서를 찾을 수 없습니다." },
         { status: 404 }
@@ -77,9 +75,9 @@ export async function PUT(
   try {
     const data: QuotationData = await request.json();
 
-    const { data: quotation, error } = await supabase
-      .from("Quotation")
-      .update({
+    const quotation = await prisma.quotation.update({
+      where: { id: params.id },
+      data: {
         version: data.project.version,
         companyName: data.company.name,
         companyAddress: data.company.address,
@@ -97,22 +95,15 @@ export async function PUT(
         notes: data.notes,
         totalAmount: data.totalAmount,
         vatIncluded: data.vatIncluded,
-        historyData: data.history,
-        milestonesData: data.milestones,
-        quotationItems: data.quotationItems,
-        gradeInfoData: data.gradeInfo,
-        milestoneColumnWidths: data.milestoneColumnWidths || null,
+        historyData: data.history as any,
+        milestonesData: data.milestones as any,
+        quotationItems: data.quotationItems as any,
+        gradeInfoData: data.gradeInfo as any,
+        milestoneColumnWidths: data.milestoneColumnWidths as any || null,
         rowsPerPage: data.rowsPerPage || 20,
         roundingUnit: data.roundingUnit || 10000,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq("id", params.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
+      },
+    });
 
     return NextResponse.json({ id: quotation.id, message: "견적서가 수정되었습니다." });
   } catch (error) {
@@ -130,14 +121,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { error } = await supabase
-      .from("Quotation")
-      .delete()
-      .eq("id", params.id);
-
-    if (error) {
-      throw error;
-    }
+    await prisma.quotation.delete({
+      where: { id: params.id },
+    });
 
     return NextResponse.json({ message: "견적서가 삭제되었습니다." });
   } catch (error) {
