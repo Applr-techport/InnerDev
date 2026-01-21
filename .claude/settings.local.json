@@ -17,7 +17,12 @@
       "Bash(open:*)",
       "Bash(npm ls:*)",
       "Bash(ls:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(PGPASSWORD=dLvsBJDtuvxATnjwhuEYgSpniRapcAbD psql:*)",
+      "Bash(brew install:*)",
+      "Bash(~/.zshrc)",
+      "Bash(export PATH=\"/opt/homebrew/opt/libpq/bin:$PATH\")",
+      "Bash(/opt/homebrew/opt/libpq/bin/psql:*)"
     ]
   },
   "enableAllProjectMcpServers": false

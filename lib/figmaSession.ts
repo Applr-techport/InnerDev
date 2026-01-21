@@ -10,12 +10,17 @@ export async function initBrowser(): Promise<Browser> {
     return browser;
   }
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   browser = await chromium.launch({
     headless: true,
+    executablePath: isProduction ? process.env.CHROMIUM_PATH : undefined,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--single-process",
     ],
   });
 

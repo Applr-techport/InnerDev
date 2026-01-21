@@ -5,4 +5,4 @@ builder = "nixpacks"
 aptPkgs = ["chromium", "fonts-noto-cjk"]
 
 [deploy]
-startCommand = "export CHROMIUM_PATH=$(which chromium-browser || which chromium) && npx prisma db push && npm start"
+startCommand = "export CHROMIUM_PATH=$(find /nix -name 'chromium' -type f 2>/dev/null | head -1) && npx prisma db push && npm start"
