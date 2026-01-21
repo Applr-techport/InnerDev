@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
           '--disable-gpu',
           '--single-process',
         ],
-        executablePath: '/usr/bin/chromium',
+        executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
         headless: true,
       });
     } else {
