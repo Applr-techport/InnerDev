@@ -86,6 +86,7 @@ export default function QuotationGenerator() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [isRendering, setIsRendering] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false); // PDF 생성 중 표시용
   const isGeneratingRef = useRef(false); // 중복 요청 방지용
   
   // AI 분석 관련 상태
@@ -307,6 +308,7 @@ export default function QuotationGenerator() {
 
     try {
       isGeneratingRef.current = true;
+      setIsGeneratingPdf(true);
       setError(null);
       // showLoadingMessage가 true일 때만 렌더링 메시지 표시
       if (showLoadingMessage) {
@@ -381,6 +383,7 @@ export default function QuotationGenerator() {
       setIsRendering(false);
     } finally {
       isGeneratingRef.current = false;
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -1236,7 +1239,17 @@ export default function QuotationGenerator() {
       {/* 우측: 미리보기 화면 */}
       <div className="bg-gray-100 rounded-lg p-4 sticky top-0 h-[calc(100vh-200px)]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">PDF 미리보기</h2>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            PDF 미리보기
+            {isGeneratingPdf && (
+              <span className="inline-flex items-center gap-1 text-sm font-normal text-gray-500">
+                <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+            )}
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={() => updatePreview(true)}

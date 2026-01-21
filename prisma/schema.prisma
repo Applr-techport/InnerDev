@@ -59,22 +59,3 @@ model Quotation {
   @@schema("innerdev")
 }
 
-// 피그마 프로젝트 모델
-model FigmaProject {
-  id            String   @id @default(cuid())
-  name          String
-  figmaUrl      String
-  fileId        String
-  pages         Json     // 페이지 목록 (JSON)
-  selectedPages Json?    // 선택된 페이지 ID 배열
-  convertedPages Json?   // 변환 완료된 페이지 정보 { pageId: { code: string, convertedAt: string, evaluation?: EvaluationResult } }
-  status        String   @default("draft") // draft, analyzing, converting, completed
-  lastSavedData Json?    // 자동 저장된 작업 데이터
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([name])
-  @@index([createdAt])
-  @@index([status])
-  @@schema("innerdev")
-}
