@@ -60,3 +60,49 @@ model Quotation {
   @@schema("innerdev")
 }
 
+// 업무 단위 견적서 모델 (페이지 단가 기준)
+model TaskQuotation {
+  id        String   @id @default(cuid())
+  version   String   // 버전 번호 (예: 1.0, 1.1, 2.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // 소프트 삭제 (null이면 삭제되지 않음)
+
+  // 회사 정보
+  companyName            String
+  companyAddress         String
+  companyBusinessNumber  String
+  companyRepresentative  String
+  companyPhone           String
+
+  // 클라이언트 정보
+  clientName  String
+  clientPhone String
+
+  // 프로젝트 정보
+  projectName      String
+  projectVersion   String
+  projectDate      String
+  projectValidityDays Int @default(14)
+
+  // 견적 정보
+  discountRate Float
+  workPeriod   Float
+  totalAmount  Float
+  vatIncluded  Boolean @default(true)
+
+  // JSON 데이터 저장 (페이지 단가 기준)
+  historyData      Json // HistoryItem[]
+  milestonesData   Json // TaskMilestoneItem[] - name, pageType, quantity, unitPrice, amount
+  quotationItems   Json // TaskQuotationItem[] - pageType, quantity, unitPrice, amount
+  rowsPerPage      Int? @default(15)
+  roundingUnit     Int? @default(10000)
+
+  // 메모
+  notes String?
+
+  @@index([projectName])
+  @@index([createdAt])
+  @@schema("innerdev")
+}
+

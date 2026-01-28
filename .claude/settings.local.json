@@ -24,7 +24,13 @@
       "Bash(export PATH=\"/opt/homebrew/opt/libpq/bin:$PATH\")",
       "Bash(/opt/homebrew/opt/libpq/bin/psql:*)",
       "Bash(curl:*)",
-      "Bash(PGPASSWORD=dLvsBJDtuvxATnjwhuEYgSpniRapcAbD /opt/homebrew/opt/postgresql@16/bin/psql:*)"
+      "Bash(PGPASSWORD=dLvsBJDtuvxATnjwhuEYgSpniRapcAbD /opt/homebrew/opt/postgresql@16/bin/psql:*)",
+      "Bash(npx next build:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": false

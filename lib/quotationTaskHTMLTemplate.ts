@@ -1,4 +1,4 @@
-import type { QuotationData } from "./quotationProcessor";
+import type { TaskQuotationData } from "./quotationTaskProcessor";
 import fs from "fs";
 import path from "path";
 
@@ -56,86 +56,16 @@ const getFontBase64 = (fontName: string): string => {
   }
 };
 
-export function generateQuotationHTML(data: QuotationData): string {
+export function generateTaskQuotationHTML(data: TaskQuotationData): string {
   // 로고 이미지 base64 인코딩
   const logoBase64 = getLogoBase64();
   // 서명 이미지 base64 인코딩
   const signBase64 = getSignBase64();
-  
-  // 마일스톤 컬럼 너비 (기본값 또는 사용자 설정값)
-  const columnWidths = data.milestoneColumnWidths || {
-    number: 3,
-    depth1: 15,
-    depth2: 15,
-    depth3: 15,
-    planning: 7.4,
-    server: 7.4,
-    app: 7.4,
-    web: 7.4,
-    qa: 7.4,
-    pm: 7.4,
-    total: 7.4,
-  };
-  
-  // Features와 Effort의 총 너비 계산
-  const featuresWidth = columnWidths.depth1 + columnWidths.depth2 + columnWidths.depth3;
-  const effortWidth = columnWidths.planning + columnWidths.server + columnWidths.app + 
-                      columnWidths.web + columnWidths.qa + columnWidths.pm + columnWidths.total;
 
   // 폰트 파일 base64 인코딩
   const fontRegular = getFontBase64("NotoSansKR-Regular.ttf");
   const fontBold = getFontBase64("NotoSansKR-Bold.ttf");
   const fontMedium = getFontBase64("NotoSansKR-Medium.ttf");
-
-  // 업무별로 그룹화
-  const groupedByCategory = data.quotationItems.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, typeof data.quotationItems>);
-
-  // Milestone 합계 계산
-  const totalMilestone = data.milestones.reduce(
-    (acc, item) => ({
-      planning: acc.planning + item.planning,
-      server: acc.server + item.server,
-      app: acc.app + item.app,
-      web: acc.web + item.web,
-      text: acc.text + item.text,
-      pm: acc.pm + item.pm,
-      total: acc.total + item.total,
-    }),
-    { planning: 0, server: 0, app: 0, web: 0, text: 0, pm: 0, total: 0 }
-  );
-
-  // Man-days 계산 (8시간 기준)
-  const manDays = {
-    planning: (totalMilestone.planning / 8).toFixed(1),
-    server: (totalMilestone.server / 8).toFixed(1),
-    app: (totalMilestone.app / 8).toFixed(1),
-    web: (totalMilestone.web / 8).toFixed(1),
-    text: (totalMilestone.text / 8).toFixed(1),
-    pm: (totalMilestone.pm / 8).toFixed(1),
-    total: (totalMilestone.total / 8).toFixed(1),
-  };
-
-  // Man-months 계산 (20.9일 기준)
-  const manMonths = {
-    planning: (parseFloat(manDays.planning) / 20.9).toFixed(2),
-    server: (parseFloat(manDays.server) / 20.9).toFixed(2),
-    app: (parseFloat(manDays.app) / 20.9).toFixed(2),
-    web: (parseFloat(manDays.web) / 20.9).toFixed(2),
-    text: (parseFloat(manDays.text) / 20.9).toFixed(2),
-    pm: (parseFloat(manDays.pm) / 20.9).toFixed(2),
-    total: (parseFloat(manDays.total) / 20.9).toFixed(2),
-  };
-
-  // 직무명 표시 함수 (변환 없이 그대로 표시)
-  const formatGradeName = (grade: string): string => {
-    return grade;
-  };
 
   // History 테이블 HTML 생성
   const historyRows = data.history
@@ -154,83 +84,54 @@ export function generateQuotationHTML(data: QuotationData): string {
 
   // Milestone 테이블 행 HTML 생성 함수
   const createMilestoneRow = (item: any, index: number) => `
-    <tr style="height: 15px;">
+    <tr style="height: 20px;">
       <td class="text-center">${index + 1}</td>
-      <td class="text-left">${item.depth1 || ""}</td>
-      <td class="text-left">${item.depth2 || ""}</td>
-      <td class="text-left">${item.depth3 || ""}</td>
-      <td class="text-right">${item.planning}</td>
-      <td class="text-right">${item.server}</td>
-      <td class="text-right">${item.app}</td>
-      <td class="text-right">${item.web}</td>
-      <td class="text-right">${item.text}</td>
-      <td class="text-right">${item.pm}</td>
-      <td class="text-right">${item.total}</td>
+      <td class="text-left">${item.name || ""}</td>
+      <td class="text-center">${item.pageType || ""}</td>
+      <td class="text-right">${item.quantity}</td>
+      <td class="text-right">${item.unitPrice.toLocaleString()}</td>
+      <td class="text-right">${item.amount.toLocaleString()}</td>
     </tr>
   `;
 
-  // 마일스톤 데이터를 페이지별로 나누기 (사용자 설정값 또는 기본값 20)
-  const rowsPerPage = data.rowsPerPage || 20;
+  // 마일스톤 데이터를 페이지별로 나누기
+  const rowsPerPage = data.rowsPerPage || 15;
   const milestonePages: any[][] = [];
   for (let i = 0; i < data.milestones.length; i += rowsPerPage) {
     milestonePages.push(data.milestones.slice(i, i + rowsPerPage));
   }
-  
+
   // 마일스톤이 없을 때도 빈 페이지 하나 생성
   if (milestonePages.length === 0) {
     milestonePages.push([]);
   }
 
-  // 견적서 테이블 HTML 생성
-  const quotationRows = Object.entries(groupedByCategory)
-    .map(([category, items]) => {
-      const itemRows = items
-        .map(
-          (item) => {
-            // 직무별 단위총액(M/M) 찾기 - gradeInfo에서 해당 직무의 total 값 사용
-            const gradeInfo = data.gradeInfo.find(g => g.grade === item.grade);
-            const unitTotal = gradeInfo?.total || 0;
-            return `
-      <tr>
-        <td class="text-center">${item.category}</td>
-        <td class="text-center">${formatGradeName(item.grade || "")}</td>
-        <td class="text-right">${unitTotal > 0 ? Math.round(unitTotal).toLocaleString() : "-"}</td>
-        <td class="text-right">${item.mm > 0 ? item.mm.toFixed(2) : "-"}</td>
-        <td class="text-right">${item.mmCost > 0 ? item.mmCost.toLocaleString() : "-"}</td>
-        <td class="text-right">${item.discountedAmount > 0 ? item.discountedAmount.toLocaleString() : "-"}</td>
-      </tr>
-    `;
-          }
-        )
-        .join("");
+  // 마일스톤 합계 계산
+  const totalMilestone = data.milestones.reduce(
+    (acc, item) => ({
+      quantity: acc.quantity + item.quantity,
+      amount: acc.amount + item.amount,
+    }),
+    { quantity: 0, amount: 0 }
+  );
 
-      return `
-    ${itemRows}
-  `;
-    })
-    .join("");
-
-  const totalQuotation = data.quotationItems.reduce((sum, item) => sum + item.discountedAmount, 0);
-  const totalMM = data.quotationItems.reduce((sum, item) => sum + item.mm, 0);
-  const totalMMCost = data.quotationItems.reduce((sum, item) => sum + item.mmCost, 0);
-
-  // 등급별 M/M 테이블 HTML 생성 (각 등급별 M/M 사용량 계산)
-  const gradeRows = data.gradeInfo
+  // 견적서 테이블 HTML 생성 (유형별 합계)
+  const quotationRows = data.quotationItems
     .map(
-      (grade) => {
-        return `
+      (item) => `
     <tr>
-      <td class="text-center">${formatGradeName(grade.grade)}</td>
-      <td class="text-right">${grade.dailyRate > 0 ? grade.dailyRate.toLocaleString() : "-"}</td>
-      <td class="text-right">${grade.directCost > 0 ? grade.directCost.toLocaleString() : "-"}</td>
-      <td class="text-right">${grade.overhead > 0 ? grade.overhead.toLocaleString() : "-"}</td>
-      <td class="text-right">${grade.techFee > 0 ? grade.techFee.toLocaleString() : "-"}</td>
-      <td class="text-right">${grade.total > 0 ? grade.total.toLocaleString() : "-"}</td>
+      <td class="text-center">${item.pageType}</td>
+      <td class="text-right">${item.quantity}</td>
+      <td class="text-right">${item.unitPrice.toLocaleString()}</td>
+      <td class="text-right">${item.amount.toLocaleString()}</td>
     </tr>
-  `;
-      }
+  `
     )
     .join("");
+
+  const totalBeforeDiscount = data.quotationItems.reduce((sum, item) => sum + item.amount, 0);
+  const discountAmount = Math.round(totalBeforeDiscount * (data.discountRate / 100));
+  const totalAfterDiscount = totalBeforeDiscount - discountAmount;
 
   return `<!DOCTYPE html>
 <html>
@@ -268,7 +169,7 @@ export function generateQuotationHTML(data: QuotationData): string {
       }
 
       body {
-        font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
         margin: 0;
         padding: 0;
         font-size: 9pt;
@@ -366,33 +267,6 @@ export function generateQuotationHTML(data: QuotationData): string {
         padding-bottom: 10px;
       }
 
-      /* 마일스톤 페이지 헤더 - 각 페이지에 반복 */
-      .milestone-page .page-header,
-      .milestone-page .section-title,
-      .milestone-page .project-info {
-        page-break-after: avoid;
-        page-break-inside: avoid;
-      }
-
-      /* 마일스톤 페이지에서 테이블이 페이지를 넘어갈 때 헤더 반복 */
-      .milestone-page table {
-        page-break-inside: auto;
-      }
-
-      .milestone-page table thead {
-        display: table-header-group;
-      }
-
-      .milestone-page table tbody tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-      }
-
-      /* 페이지 간격 */
-      .milestone-page {
-        margin-bottom: 10mm;
-      }
-
       .header-logo {
         display: flex;
         align-items: center;
@@ -434,20 +308,12 @@ export function generateQuotationHTML(data: QuotationData): string {
         width: 100%;
         border-collapse: collapse;
         margin: 10px 0;
-        font-size: 7pt;
+        font-size: 8pt;
       }
 
       table thead {
         background-color: #D9D9D9;
         display: table-header-group;
-      }
-
-      table tbody {
-        display: table-row-group;
-      }
-
-      table tfoot {
-        display: table-footer-group;
       }
 
       table th {
@@ -456,32 +322,14 @@ export function generateQuotationHTML(data: QuotationData): string {
         vertical-align: middle;
         font-weight: bold;
         border: 0.5px solid #666;
-        font-size: 7pt;
+        font-size: 8pt;
       }
 
       table td {
         padding: 6px 4px;
         border: 0.5px solid #999;
-        font-size: 7pt;
+        font-size: 8pt;
         vertical-align: middle;
-      }
-
-      /* 마일스톤 테이블 행 높이 고정 */
-      .milestone-page table tbody tr {
-        height: 15px;
-        min-height: 15px;
-        max-height: 15px;
-      }
-
-      /* 페이지 넘김 시 행 분리 방지 및 헤더 반복 */
-      table tbody tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-      }
-
-      table thead tr {
-        page-break-inside: avoid;
-        page-break-after: avoid;
       }
 
       .text-left {
@@ -503,20 +351,7 @@ export function generateQuotationHTML(data: QuotationData): string {
         background-color: #E7E6E6;
       }
 
-      .subtotal-row {
-        background-color: #F2F2F2;
-      }
-
-      .gray-bg {
-        background-color: #D9D9D9;
-      }
-
       /* 견적서 페이지 스타일 */
-      .quotation-header {
-        text-align: right;
-        margin-bottom: 20px;
-      }
-
       .quotation-title {
         font-size: 15pt;
         font-weight: bold;
@@ -547,26 +382,6 @@ export function generateQuotationHTML(data: QuotationData): string {
         line-height: 1.6;
       }
 
-      .proposal-box {
-        background-color: #f8f8f8;
-        border: 1px solid #ccc;
-        padding: 15px;
-        margin: 15px 0;
-        text-align: center;
-      }
-
-      .proposal-title {
-        font-size: 10pt;
-        font-weight: bold;
-        margin-bottom: 10px;
-      }
-
-      .proposal-amount {
-        font-size: 17pt;
-        font-weight: bold;
-        color: #000;
-      }
-
       .notes {
         font-size: 7.5pt;
         margin-top: 15px;
@@ -587,6 +402,15 @@ export function generateQuotationHTML(data: QuotationData): string {
         font-size: 8pt;
         color: #666;
         text-align: center;
+      }
+
+      /* 단가표 스타일 */
+      .price-table {
+        margin-top: 20px;
+      }
+
+      .price-table th, .price-table td {
+        font-size: 8pt;
       }
     </style>
   </head>
@@ -649,12 +473,12 @@ export function generateQuotationHTML(data: QuotationData): string {
       </table>
     </div>
 
-    <!-- Milestone List 페이지들 -->
+    <!-- 작업 항목 목록 페이지들 -->
     ${milestonePages.map((pageMilestones, pageIndex) => {
       const startIndex = pageIndex * rowsPerPage;
       const isLastPage = pageIndex === milestonePages.length - 1;
-      const pageNumber = 3 + pageIndex; // 커버(1) + History(2) + Milestone 페이지들
-      
+      const pageNumber = 3 + pageIndex;
+
       return `
     <div class="page milestone-page">
       <div class="page-number">- ${pageNumber} -</div>
@@ -662,7 +486,7 @@ export function generateQuotationHTML(data: QuotationData): string {
         <div class="header-logo">
           ${logoBase64 ? `<img src="${logoBase64}" alt="APPLR" class="logo-icon" />` : ''}
         </div>
-        <div class="page-title">Milestone List</div>
+        <div class="page-title">작업 항목 목록</div>
       </div>
 
       <div class="section-title"></div>
@@ -672,39 +496,25 @@ export function generateQuotationHTML(data: QuotationData): string {
         <div class="project-info" style="font-size: 8pt; margin-top: 0;">${formatDate(data.project.date)}</div>
       </div>
 
-      <table style="margin-top: 10px; border-collapse: collapse;">
-        <thead style="display: table-header-group;">
+      <table style="margin-top: 10px;">
+        <thead>
           <tr>
-            <th rowspan="2" style="width: ${columnWidths.number}%">#</th>
-            <th colspan="3" style="width: ${featuresWidth}%">Features</th>
-            <th colspan="7" style="width: ${effortWidth}%">Effort (man-hours)</th>
-          </tr>
-          <tr>
-            <th style="width: ${columnWidths.depth1}%">Depth1</th>
-            <th style="width: ${columnWidths.depth2}%">Depth2</th>
-            <th style="width: ${columnWidths.depth3}%">Depth3</th>
-            <th style="width: ${columnWidths.planning}%">기획/<br/>디자인</th>
-            <th style="width: ${columnWidths.server}%">Server</th>
-            <th style="width: ${columnWidths.app}%">App</th>
-            <th style="width: ${columnWidths.web}%">Web</th>
-            <th style="width: ${columnWidths.qa}%">QA</th>
-            <th style="width: ${columnWidths.pm}%">PM</th>
-            <th style="width: ${columnWidths.total}%">Total</th>
+            <th style="width: 5%">#</th>
+            <th style="width: 35%">페이지/기능명</th>
+            <th style="width: 20%">유형</th>
+            <th style="width: 10%">수량</th>
+            <th style="width: 15%">단가</th>
+            <th style="width: 15%">금액</th>
           </tr>
         </thead>
         <tbody>
-          ${pageMilestones.length > 0 
+          ${pageMilestones.length > 0
             ? pageMilestones.map((item, idx) => createMilestoneRow(item, startIndex + idx)).join('')
             : Array.from({ length: rowsPerPage }, (_, i) => `
-          <tr style="height: 15px;">
+          <tr style="height: 20px;">
             <td class="text-center"></td>
             <td class="text-left"></td>
-            <td class="text-left"></td>
-            <td class="text-left"></td>
-            <td class="text-right"></td>
-            <td class="text-right"></td>
-            <td class="text-right"></td>
-            <td class="text-right"></td>
+            <td class="text-center"></td>
             <td class="text-right"></td>
             <td class="text-right"></td>
             <td class="text-right"></td>
@@ -712,24 +522,10 @@ export function generateQuotationHTML(data: QuotationData): string {
           `).join('')}
           ${isLastPage ? `
           <tr class="total-row">
-            <td colspan="4" class="text-center">합계(Man-days)</td>
-            <td class="text-right">${manDays.planning}</td>
-            <td class="text-right">${manDays.server}</td>
-            <td class="text-right">${manDays.app}</td>
-            <td class="text-right">${manDays.web}</td>
-            <td class="text-right">${manDays.text}</td>
-            <td class="text-right">${manDays.pm}</td>
-            <td class="text-right">${manDays.total}</td>
-          </tr>
-          <tr class="total-row">
-            <td colspan="4" class="text-center">합계(Man-months)</td>
-            <td class="text-right">${manMonths.planning}</td>
-            <td class="text-right">${manMonths.server}</td>
-            <td class="text-right">${manMonths.app}</td>
-            <td class="text-right">${manMonths.web}</td>
-            <td class="text-right">${manMonths.text}</td>
-            <td class="text-right">${manMonths.pm}</td>
-            <td class="text-right">${manMonths.total}</td>
+            <td colspan="3" class="text-center">합계</td>
+            <td class="text-right">${totalMilestone.quantity}</td>
+            <td class="text-right">-</td>
+            <td class="text-right">${totalMilestone.amount.toLocaleString()}</td>
           </tr>
           ` : ''}
         </tbody>
@@ -763,8 +559,8 @@ export function generateQuotationHTML(data: QuotationData): string {
       <div style="border-top: 1px solid #999; margin: 0px 0;"></div>
 
       <div class="client-info" style="margin-top: 3px; margin-bottom: 0px; text-align: right;">
-        <div style="font-size: 9pt; margin-bottom: 0px; display: flex; align-items: center; justify-content: flex-end;">${data.client.name || ""} 님 귀중</div>
-        <div style="font-size: 8pt; color: #666; display: flex; align-items: center; justify-content: flex-end;">${data.client.phone || ""}</div>
+        <div style="font-size: 9pt; margin-bottom: 0px;">${data.client.name || ""} 님 귀중</div>
+        <div style="font-size: 8pt; color: #666;">${data.client.phone || ""}</div>
       </div>
 
       <div style="border-top: 1px solid #999; margin: 5px 0;"></div>
@@ -792,60 +588,92 @@ export function generateQuotationHTML(data: QuotationData): string {
       <table style="margin-top: 0px;">
         <thead>
           <tr>
-            <th style="width: 12%">업무</th>
-            <th style="width: 12%">직무</th>
-            <th style="width: 16%">직무별 기본단가</th>
-            <th style="width: 10%">M/M계</th>
-            <th style="width: 18%">직무기준 M/M 비용</th>
-            <th style="width: 18%">할인적용금액</th>
+            <th style="width: 35%">유형</th>
+            <th style="width: 15%">수량</th>
+            <th style="width: 25%">단가</th>
+            <th style="width: 25%">금액</th>
           </tr>
         </thead>
         <tbody>
           ${quotationRows}
           <tr class="total-row">
+            <td colspan="3" class="text-center">소계</td>
+            <td class="text-right">${totalBeforeDiscount.toLocaleString()}</td>
+          </tr>
+          ${data.discountRate > 0 ? `
+          <tr>
+            <td colspan="3" class="text-center">할인 (${data.discountRate}%)</td>
+            <td class="text-right">-${discountAmount.toLocaleString()}</td>
+          </tr>
+          ` : ''}
+          <tr class="total-row">
             <td colspan="3" class="text-center">합계</td>
-            <td class="text-right">${manMonths.total}</td>
-            <td class="text-right">${totalMMCost > 0 ? totalMMCost.toLocaleString() : "-"}</td>
-            <td class="text-right">${totalQuotation > 0 ? totalQuotation.toLocaleString() : "-"}</td>
+            <td class="text-right">${data.totalAmount.toLocaleString()}</td>
           </tr>
         </tbody>
       </table>
 
       ${data.notes ? `
-      <div class="notes" style="margin-top: 5px;">
+      <div class="notes" style="margin-top: 15px;">
         ${data.notes.split('\n').map(line => `<div>* ${line}</div>`).join('')}
       </div>
       ` : ''}
 
-      ${data.gradeInfo.length > 0 ? `
-      <div class="section-title" style="margin-top: 30px; font-size: 9pt;">직무별 M/M 및 단위 비용</div>
-
-      <table style="margin-top: 5px;">
+      <!-- 단가 기준표 -->
+      <div class="section-title" style="margin-top: 30px; font-size: 9pt;">페이지 유형별 단가 기준</div>
+      <table class="price-table" style="margin-top: 5px;">
         <thead>
           <tr>
-            <th style="width: 12%">직무</th>
-            <th style="width: 15%">S/W기술자 직무별<br/>노임단가(M/D)</th>
-            <th style="width: 15%">직접인건비<br/>(20.9일)</th>
-            <th style="width: 15%">제경비<br/>(110%)</th>
-            <th style="width: 15%">기술료<br/>(20%)</th>
-            <th style="width: 28%">직무별<br/>단위총액(M/M)</th>
+            <th style="width: 25%">유형</th>
+            <th style="width: 20%">단가</th>
+            <th style="width: 55%">비고</th>
           </tr>
         </thead>
         <tbody>
-          ${gradeRows}
+          <tr>
+            <td class="text-center">메인페이지</td>
+            <td class="text-right">300,000</td>
+            <td class="text-left"></td>
+          </tr>
+          <tr>
+            <td class="text-center">하드 코딩 페이지</td>
+            <td class="text-right">100,000</td>
+            <td class="text-left">서버 연동 없이 하드 코딩으로 이뤄진 페이지</td>
+          </tr>
+          <tr>
+            <td class="text-center">서버 연동 페이지</td>
+            <td class="text-right">150,000</td>
+            <td class="text-left">게시판은 아니지만 서버 연동 등 작업이 필요한 페이지</td>
+          </tr>
+          <tr>
+            <td class="text-center">템플릿 게시판</td>
+            <td class="text-right">150,000</td>
+            <td class="text-left">일반 텍스트 리스트형 게시판</td>
+          </tr>
+          <tr>
+            <td class="text-center">커스텀 게시판</td>
+            <td class="text-right">200,000</td>
+            <td class="text-left">신규로 제작하는 게시판</td>
+          </tr>
+          <tr>
+            <td class="text-center">플로팅</td>
+            <td class="text-right">50,000</td>
+            <td class="text-left"></td>
+          </tr>
+          <tr>
+            <td class="text-center">팝업</td>
+            <td class="text-right">50,000</td>
+            <td class="text-left"></td>
+          </tr>
         </tbody>
       </table>
 
       <div class="notes" style="margin-top: 20px;">
-        <div>* 유효기간 : 견적일로 부터 14일 이내</div>
+        <div>* 유효기간 : 견적일로 부터 ${data.project.validityDays || 14}일 이내</div>
         <div>* 본 견적은 디자인 및 프로그램의 제작 범위, 제작 수량이 최종 결정됨에 따라 변동될 수 있음.</div>
-        <div>* 산출방식 : 제경비 = 직접인건비 x 제경비율 / 기술료 = (직접인건비 + 제경비) x 기술료율 / 단위총액 = 직접인건비 + 제경비 + 기술료</div>
-        <div>* SW기술자 평균임금은 소프트웨어산업진흥법 제22조(소프트웨어사업의 대가지급) 4항 '소프트웨어기술자의 노임단가'를 지칭함.</div>
-        <div>* 월평균 근무일수는 20.9일, 일/8시간 기준</div>
+        <div>* 위 단가는 표준 작업 범위 기준이며, 복잡도에 따라 조정될 수 있습니다.</div>
       </div>
-      ` : ''}
     </div>
   </body>
 </html>`;
 }
-

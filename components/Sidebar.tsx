@@ -10,6 +10,7 @@ const menuItems = [
   { name: "이미지 사이즈 변경", path: "/image-resize" },
   { name: "앱스토어 스크린샷", path: "/screenshot" },
   { name: "견적서 생성기", path: "/quotation" },
+  { name: "견적서 생성기(업무 단위 산정용)", path: "/quotation-task" },
 ];
 
 export default function Sidebar() {
