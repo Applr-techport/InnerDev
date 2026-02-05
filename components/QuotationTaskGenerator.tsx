@@ -960,7 +960,7 @@ export default function QuotationTaskGenerator() {
                     <td className="border p-2">{item.pageType}</td>
                     <td className="border p-2 text-right">{item.quantity}</td>
                     <td className="border p-2 text-right">
-                      {item.pageType === "기타" ? "-" : `${item.unitPrice.toLocaleString()}원`}
+                      {`${item.unitPrice.toLocaleString()}원`}
                     </td>
                     <td className="border p-2 text-right font-bold">{item.amount.toLocaleString()}원</td>
                   </tr>

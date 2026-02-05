@@ -89,9 +89,21 @@ export function getPageTypePrice(type: string): number {
 // 마일스톤에서 유형별 합계 계산
 export function calculateQuotationItems(milestones: TaskMilestoneItem[]): TaskQuotationItem[] {
   const grouped: Record<string, { quantity: number; unitPrice: number; totalAmount: number }> = {};
+  const etcItems: TaskQuotationItem[] = []; // "기타"는 개별 항목으로 유지
 
   milestones.forEach(item => {
     if (!item.pageType) return;
+
+    // "기타" 유형은 개별 항목으로 추가 (각각 단가가 다를 수 있음)
+    if (item.pageType === "기타") {
+      etcItems.push({
+        pageType: item.name || "기타", // 항목명을 유형으로 사용
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount: item.amount,
+      });
+      return;
+    }
 
     if (!grouped[item.pageType]) {
       grouped[item.pageType] = {
@@ -101,17 +113,18 @@ export function calculateQuotationItems(milestones: TaskMilestoneItem[]): TaskQu
       };
     }
     grouped[item.pageType].quantity += item.quantity;
-    // "기타" 유형은 각 항목의 금액을 직접 합산 (단가가 각각 다를 수 있음)
     grouped[item.pageType].totalAmount += item.amount;
   });
 
-  return Object.entries(grouped).map(([pageType, data]) => ({
+  const regularItems = Object.entries(grouped).map(([pageType, data]) => ({
     pageType,
     quantity: data.quantity,
     unitPrice: data.unitPrice,
-    // "기타" 유형은 직접 합산한 금액 사용, 그 외는 수량 * 단가
-    amount: pageType === "기타" ? data.totalAmount : data.quantity * data.unitPrice,
+    amount: data.quantity * data.unitPrice,
   }));
+
+  // 일반 유형 먼저, 그 다음 기타 항목들
+  return [...regularItems, ...etcItems];
 }
 
 // 총액 계산 (할인 적용 전)
